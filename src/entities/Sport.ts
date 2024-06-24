@@ -1,5 +1,5 @@
-import { PrimaryGeneratedColumn, Entity, Column } from 'typeorm'
-
+import { PrimaryGeneratedColumn, Entity, Column, OneToMany } from 'typeorm'
+import { Team } from './Team'
 @Entity()
 export class Sport {
   @PrimaryGeneratedColumn()
@@ -24,4 +24,7 @@ export class Sport {
   sport_rules: string
   @Column()
   isDeleted: boolean
+
+  @OneToMany(() => Team, (team) => team.sport)
+  team: Team[]
 }
