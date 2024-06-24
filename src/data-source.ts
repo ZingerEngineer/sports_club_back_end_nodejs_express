@@ -1,6 +1,5 @@
 import 'reflect-metadata'
 import { DataSource } from 'typeorm'
-import { User } from './entity/User'
 import dotenv from 'dotenv'
 
 dotenv.config()
@@ -20,8 +19,8 @@ export const AppDataSource = new DataSource({
   database,
   synchronize: synchronize,
   logging: false,
-  entities: [User],
-  migrations: [],
+  entities: ['./src/entities/*{.ts,.js}'],
+  migrations: ['./src/migrations/*{.ts,.js}'],
   subscribers: [],
   extra: {
     trustServerCertificate: true
