@@ -5,7 +5,6 @@ export enum TeamType {
   AMATURES = 'amatures',
   INTERNATIONAL = 'international'
 }
-
 @Entity()
 export class Team {
   @PrimaryGeneratedColumn()
@@ -13,11 +12,10 @@ export class Team {
   @Column()
   team_name: string
   @Column({
-    type: 'enum',
-    enum: TeamType,
-    default: TeamType.CANDIDATES
+    type: 'nvarchar',
+    default: 'candidates'
   })
-  team_type: TeamType
+  team_type: string
   @Column({
     type: 'int',
     width: 2
