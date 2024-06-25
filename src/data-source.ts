@@ -7,8 +7,6 @@ const database = process.env.DB_NAME_SECRET
 const username = process.env.DB_USER_NAME_SECRET
 const password = process.env.DB_USER_PASS_SECRET
 const port = parseInt(process.env.DB_PORT_SECRET)
-let synchronize = false
-if (process.env.NODE_ENV == 'development') synchronize = true
 
 export const AppDataSource = new DataSource({
   type: 'mssql',
@@ -17,7 +15,7 @@ export const AppDataSource = new DataSource({
   username,
   password,
   database,
-  synchronize: synchronize,
+  synchronize: false,
   logging: false,
   entities: ['./src/entities/*{.ts,.js}'],
   migrations: ['./src/migrations/*{.ts,.js}'],
