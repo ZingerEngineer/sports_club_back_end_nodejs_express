@@ -13,14 +13,24 @@ export class Team_member {
   @PrimaryGeneratedColumn()
   id: number
 
-  @ManyToOne(() => User, (user) => user.team_member)
-  @JoinColumn({
-    name: 'user_id'
+  @ManyToOne(() => User, (user) => user.team_member, {
+    cascade: true,
+    onDelete: 'CASCADE',
+    orphanedRowAction: 'soft-delete',
+    nullable: false
   })
+  @JoinColumn({ name: 'user_id' })
   user: User
 
-  @ManyToOne(() => Team, (team) => team.team_member)
-  @JoinColumn()
+  @ManyToOne(() => Team, (team) => team.team_member, {
+    cascade: true,
+    onDelete: 'CASCADE',
+    orphanedRowAction: 'soft-delete',
+    nullable: false
+  })
+  @JoinColumn({
+    name: 'team_id'
+  })
   team: Team
 
   @Column({

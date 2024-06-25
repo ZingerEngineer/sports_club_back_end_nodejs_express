@@ -3,11 +3,13 @@ import {
   PrimaryGeneratedColumn,
   Column,
   ManyToOne,
-  ManyToMany
+  ManyToMany,
+  OneToOne
 } from 'typeorm'
 import { Sport } from './Sport'
 import { Sponsor } from './Sponsor'
 import { Team_member } from './Team_member'
+import { Coach } from './Coach'
 
 export enum TeamType {
   CANDIDATES = 'candidates',
@@ -48,6 +50,13 @@ export class Team {
 
   @ManyToOne(() => Team_member, (team_member) => team_member.team)
   team_member: Team_member
+
+  @OneToOne(() => Coach, (coach) => coach.team, {
+    cascade: true,
+    onDelete: 'CASCADE',
+    orphanedRowAction: 'soft-delete'
+  })
+  coach: Coach
 
   @Column()
   isDeleted: boolean

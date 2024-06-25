@@ -13,15 +13,26 @@ export class Coach {
   @PrimaryGeneratedColumn()
   coach_id: number
 
-  @OneToOne(() => User, (user) => user.user_id)
+  @OneToOne(() => User, (user) => user.coach, {
+    cascade: true,
+    orphanedRowAction: 'soft-delete',
+    nullable: false
+  })
   @JoinColumn({
     name: 'user_id'
   })
   user: User
 
-  @OneToOne(() => Team, (team) => team.team_id)
-  @JoinColumn()
-  coaching_team: Team
+  @OneToOne(() => Team, (team) => team.coach, {
+    cascade: true,
+    onDelete: 'CASCADE',
+    orphanedRowAction: 'soft-delete',
+    nullable: false
+  })
+  @JoinColumn({
+    name: 'team_id'
+  })
+  team: Team
 
   @Column({
     type: 'numeric',

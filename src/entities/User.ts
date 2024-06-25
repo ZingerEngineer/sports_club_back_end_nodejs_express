@@ -1,5 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm'
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToMany,
+  OneToOne
+} from 'typeorm'
 import { Team_member } from './Team_member'
+import { Coach } from './Coach'
 
 @Entity()
 export class User {
@@ -29,6 +36,9 @@ export class User {
 
   @OneToMany(() => Team_member, (team_member) => team_member.user)
   team_member: Team_member
+
+  @OneToOne(() => Coach, (coach) => coach.user)
+  coach: Coach
 
   @Column()
   isDeleted: boolean
