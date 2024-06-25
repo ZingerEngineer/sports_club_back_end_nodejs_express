@@ -15,9 +15,6 @@ export class User {
   lastName: string
 
   @Column()
-  team: number
-
-  @Column()
   dob: Date
 
   @Column()

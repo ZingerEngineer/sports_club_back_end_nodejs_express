@@ -22,8 +22,8 @@ export class Sport {
     length: '400'
   })
   sport_rules: string
-  @Column()
-  isDeleted: boolean
+  @Column({ default: false })
+  is_deleted: boolean
 
   @OneToMany(() => Team, (team) => team.sport)
   team: Team[]

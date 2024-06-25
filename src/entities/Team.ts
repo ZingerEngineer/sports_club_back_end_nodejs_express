@@ -1,5 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm'
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  ManyToMany
+} from 'typeorm'
 import { Sport } from './Sport'
+import { Sponsor } from './Sponsor'
 
 export enum TeamType {
   CANDIDATES = 'candidates',
@@ -34,4 +41,10 @@ export class Team {
 
   @ManyToOne(() => Sport, (sport) => sport.team)
   sport: Sport[]
+
+  @ManyToMany(() => Sponsor, (sponsor) => sponsor.team)
+  sponsor: Sponsor[]
+
+  @Column()
+  isDeleted: boolean
 }
