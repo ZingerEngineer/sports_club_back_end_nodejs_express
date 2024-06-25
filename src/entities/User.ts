@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm'
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm'
+import { Team_member } from './Team_member'
 
 @Entity()
 export class User {
@@ -25,6 +26,9 @@ export class User {
 
   @Column()
   reported_on: number
+
+  @OneToMany(() => Team_member, (team_member) => team_member.user)
+  team_member: Team_member
 
   @Column()
   isDeleted: boolean

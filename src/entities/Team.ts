@@ -7,6 +7,7 @@ import {
 } from 'typeorm'
 import { Sport } from './Sport'
 import { Sponsor } from './Sponsor'
+import { Team_member } from './Team_member'
 
 export enum TeamType {
   CANDIDATES = 'candidates',
@@ -44,6 +45,9 @@ export class Team {
 
   @ManyToMany(() => Sponsor, (sponsor) => sponsor.team)
   sponsor: Sponsor[]
+
+  @ManyToOne(() => Team_member, (team_member) => team_member.team)
+  team_member: Team_member
 
   @Column()
   isDeleted: boolean

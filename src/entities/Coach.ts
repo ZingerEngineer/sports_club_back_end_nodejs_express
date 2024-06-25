@@ -1,14 +1,25 @@
-import { Column, Entity, OneToOne, JoinColumn } from 'typeorm'
+import {
+  Column,
+  Entity,
+  OneToOne,
+  JoinColumn,
+  PrimaryGeneratedColumn
+} from 'typeorm'
 import { User } from './User'
 import { Team } from './Team'
 
 @Entity()
 export class Coach {
-  @OneToOne(() => User)
-  @JoinColumn()
-  coach_id: User
+  @PrimaryGeneratedColumn()
+  coach_id: number
 
-  @OneToOne(() => Team)
+  @OneToOne(() => User, (user) => user.user_id)
+  @JoinColumn({
+    name: 'user_id'
+  })
+  user: User
+
+  @OneToOne(() => Team, (team) => team.team_id)
   @JoinColumn()
   coaching_team: Team
 
