@@ -11,7 +11,7 @@ import { Team } from './Team'
 @Entity()
 export class Team_member {
   @PrimaryGeneratedColumn()
-  id: number
+  team_mem_id: number
 
   @ManyToOne(() => User, (user) => user.team_member, {
     cascade: true,
@@ -39,17 +39,26 @@ export class Team_member {
   })
   match_role: string
   @Column({
-    type: 'int'
+    type: 'int',
+    width: 4,
+    nullable: false,
+    default: 0
   })
   goals: number
 
   @Column({
-    type: 'int'
+    type: 'int',
+    width: 4,
+    nullable: false,
+    default: 0
   })
   saves: number
 
   @Column({
-    type: 'int'
+    type: 'int',
+    width: 4,
+    nullable: false,
+    default: 0
   })
   assists: number
 

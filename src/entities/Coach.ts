@@ -25,9 +25,8 @@ export class Coach {
 
   @OneToOne(() => Team, (team) => team.coach, {
     cascade: true,
-    onDelete: 'CASCADE',
-    orphanedRowAction: 'soft-delete',
-    nullable: false
+    nullable: false,
+    orphanedRowAction: 'soft-delete'
   })
   @JoinColumn({
     name: 'team_id'
@@ -35,6 +34,7 @@ export class Coach {
   team: Team
 
   @Column({
+    default: 0,
     type: 'numeric',
     precision: 7,
     scale: 2

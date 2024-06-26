@@ -4,12 +4,15 @@ import {
   Column,
   ManyToOne,
   ManyToMany,
-  OneToOne
+  OneToOne,
+  JoinColumn,
+  OneToMany
 } from 'typeorm'
 import { Sport } from './Sport'
 import { Sponsor } from './Sponsor'
 import { Team_member } from './Team_member'
 import { Coach } from './Coach'
+import { IsDeleted } from '../enums/globalEnums'
 
 export enum TeamType {
   CANDIDATES = 'candidates',
@@ -21,43 +24,68 @@ export class Team {
   @PrimaryGeneratedColumn()
   team_id: number
 
-  @Column()
+  @Column({
+    type: 'nvarchar',
+    length: 35,
+    default: 'Guest team',
+    nullable: false
+  })
   team_name: string
 
   @Column({
     type: 'nvarchar',
-    default: 'candidates'
+    length: 20,
+    nullable: false,
+    default: TeamType.CANDIDATES
   })
   team_type: string
 
   @Column({
     type: 'int',
-    width: 2
+    width: 2,
+    default: 15,
+    nullable: false
   })
   below_age: number
 
-  @Column()
+  @Column({
+    type: 'int',
+    width: 5,
+    nullable: false,
+    default: 0
+  })
   matches_won: number
 
-  @Column()
+  @Column({
+    type: 'int',
+    width: 5,
+    nullable: false,
+    default: 0
+  })
   matches_lost: number
 
-  @ManyToOne(() => Sport, (sport) => sport.team)
-  sport: Sport[]
+  @ManyToOne(() => Sport, (sport) => sport.team, {
+    nullable: false
+  })
+  @JoinColumn({
+    name: 'sport_id'
+  })
+  sport: Sport
 
   @ManyToMany(() => Sponsor, (sponsor) => sponsor.team)
   sponsor: Sponsor[]
 
-  @ManyToOne(() => Team_member, (team_member) => team_member.team)
-  team_member: Team_member
+  @OneToMany(() => Team_member, (team_member) => team_member.team)
+  team_member: Team_member[]
 
-  @OneToOne(() => Coach, (coach) => coach.team, {
-    cascade: true,
-    onDelete: 'CASCADE',
-    orphanedRowAction: 'soft-delete'
-  })
+  @OneToOne(() => Coach, (coach) => coach.team)
   coach: Coach
 
-  @Column()
-  isDeleted: boolean
+  @Column({
+    type: 'int',
+    width: 1,
+    default: IsDeleted.EXISTS,
+    nullable: false
+  })
+  is_deleted: number
 }
