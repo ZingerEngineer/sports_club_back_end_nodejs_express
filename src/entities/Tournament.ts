@@ -1,5 +1,12 @@
-import { PrimaryGeneratedColumn, Entity, Column, ManyToOne } from 'typeorm'
+import {
+  PrimaryGeneratedColumn,
+  Entity,
+  Column,
+  JoinColumn,
+  OneToMany
+} from 'typeorm'
 import { Match } from './Match'
+import { IsDeleted } from '../enums/globalEnums'
 
 @Entity()
 export class Tournament {
@@ -17,6 +24,19 @@ export class Tournament {
   })
   date_held: Date
 
-  @ManyToOne(() => Match, (match) => match.tournament)
+  @OneToMany(() => Match, (match) => match.tournament, {
+    nullable: false
+  })
+  @JoinColumn({
+    name: 'match_id'
+  })
   match: Match[]
+
+  @Column({
+    type: 'int',
+    width: 1,
+    default: IsDeleted.EXISTS,
+    nullable: false
+  })
+  is_deleted: number
 }

@@ -1,6 +1,7 @@
 import { PrimaryGeneratedColumn, Entity, Column, OneToMany } from 'typeorm'
 import { Team } from './Team'
 import { Match } from './Match'
+import { IsDeleted } from '../enums/globalEnums'
 @Entity()
 export class Sport {
   @PrimaryGeneratedColumn()
@@ -23,8 +24,13 @@ export class Sport {
     length: '400'
   })
   sport_rules: string
-  @Column({ default: false })
-  is_deleted: boolean
+  @Column({
+    type: 'int',
+    width: 1,
+    nullable: false,
+    default: IsDeleted.EXISTS
+  })
+  is_deleted: number
 
   @OneToMany(() => Team, (team) => team.sport)
   team: Team[]

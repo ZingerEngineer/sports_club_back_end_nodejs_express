@@ -3,9 +3,9 @@ import {
   Entity,
   Column,
   ManyToOne,
-  OneToOne,
   ManyToMany,
-  JoinColumn
+  JoinColumn,
+  JoinTable
 } from 'typeorm'
 import { Team } from './Team'
 import { Sport } from './Sport'
@@ -46,16 +46,32 @@ export class Match {
   @ManyToMany(() => Team, (team) => team.team_id, {
     nullable: false
   })
-  @JoinColumn({
-    name: 'won_team'
+  @JoinTable({
+    name: 'won_team_match',
+    joinColumn: {
+      name: 'match_id',
+      referencedColumnName: 'match_id'
+    },
+    inverseJoinColumn: {
+      name: 'won_team_id',
+      referencedColumnName: 'team_id'
+    }
   })
   won_team: Team[]
 
   @ManyToMany(() => Team, (team) => team.team_id, {
     nullable: false
   })
-  @JoinColumn({
-    name: 'lost_team'
+  @JoinTable({
+    name: 'lost_team_match',
+    joinColumn: {
+      name: 'match_id',
+      referencedColumnName: 'match_id'
+    },
+    inverseJoinColumn: {
+      name: 'lost_team_id',
+      referencedColumnName: 'team_id'
+    }
   })
   lost_team: Team[]
 
@@ -68,7 +84,7 @@ export class Match {
     type: 'time',
     precision: 3,
     nullable: false,
-    default: "'00:00:00.000'"
+    default: '00:00:00.000'
   })
   match_duration: string
 

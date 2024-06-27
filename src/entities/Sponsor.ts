@@ -3,8 +3,7 @@ import {
   Entity,
   Column,
   ManyToMany,
-  JoinTable,
-  JoinColumn
+  JoinTable
 } from 'typeorm'
 import { Team } from './Team'
 import { Tournament } from './Tournament'
@@ -21,13 +20,31 @@ export class Sponsor {
   brand_name: string
 
   @ManyToMany(() => Team, (team) => team.sponsor)
-  @JoinColumn({
-    name: 'team_id'
+  @JoinTable({
+    name: 'sponsored_teams',
+    joinColumn: {
+      name: 'sponsor_id',
+      referencedColumnName: 'sponsor_id'
+    },
+    inverseJoinColumn: {
+      name: 'team_id',
+      referencedColumnName: 'team_id'
+    }
   })
   team: Team[]
 
   @ManyToMany(() => Tournament)
-  @JoinTable()
+  @JoinTable({
+    name: 'sponsored_tournaments',
+    joinColumn: {
+      name: 'sponsor_id',
+      referencedColumnName: 'sponsor_id'
+    },
+    inverseJoinColumn: {
+      name: 'tournament_id',
+      referencedColumnName: 'tournament_id'
+    }
+  })
   tournament: Tournament[]
 
   @Column({
