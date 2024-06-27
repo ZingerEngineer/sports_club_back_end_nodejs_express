@@ -1,5 +1,6 @@
 import { PrimaryGeneratedColumn, Entity, Column, OneToMany } from 'typeorm'
 import { Team } from './Team'
+import { Match } from './Match'
 @Entity()
 export class Sport {
   @PrimaryGeneratedColumn()
@@ -27,4 +28,7 @@ export class Sport {
 
   @OneToMany(() => Team, (team) => team.sport)
   team: Team[]
+
+  @OneToMany(() => Match, (match) => match.sport)
+  match: Match[]
 }

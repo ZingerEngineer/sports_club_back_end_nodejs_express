@@ -3,12 +3,14 @@ import {
   Entity,
   Column,
   ManyToOne,
-  OneToOne
+  OneToOne,
+  ManyToMany,
+  JoinColumn
 } from 'typeorm'
 import { Team } from './Team'
 import { Sport } from './Sport'
 import { Tournament } from './Tournament'
-
+import { IsDeleted } from '../enums/globalEnums'
 export enum MatchType {
   SCRIMMAGE = 'scrimmage',
   MATCHMAKING = 'match_making'
@@ -21,37 +23,60 @@ export class Match {
 
   @Column({
     type: 'nvarchar',
-    length: '50'
+    length: '50',
+    default: MatchType.SCRIMMAGE,
+    nullable: false
   })
   match_type: string
 
-  @ManyToOne(() => Sport, (sport) => sport.sport_id)
+  @ManyToOne(() => Sport, (sport) => sport.sport_id, {
+    nullable: false
+  })
+  @JoinColumn({
+    name: 'sport_id'
+  })
   sport: Sport
 
   @ManyToOne(() => Tournament, (tournament) => tournament.match)
+  @JoinColumn({
+    name: 'tournament_id'
+  })
   tournament: Tournament
 
-  @OneToOne(() => Team, (team) => team.team_id)
-  won_team: Team | null
+  @ManyToMany(() => Team, (team) => team.team_id, {
+    nullable: false
+  })
+  @JoinColumn({
+    name: 'won_team'
+  })
+  won_team: Team[]
 
-  @OneToOne(() => Team, (team) => team.team_id)
-  lost_team: Team | null
+  @ManyToMany(() => Team, (team) => team.team_id, {
+    nullable: false
+  })
+  @JoinColumn({
+    name: 'lost_team'
+  })
+  lost_team: Team[]
 
   @Column({
     type: 'date'
   })
   date_held: Date
 
-  @Column({ type: 'int', width: 4 })
-  match_duration: number
+  @Column({
+    type: 'time',
+    precision: 3,
+    nullable: false,
+    default: "'00:00:00.000'"
+  })
+  match_duration: string
 
   @Column({
-    default: true
+    type: 'int',
+    width: 1,
+    nullable: false,
+    default: IsDeleted.EXISTS
   })
-  pending: boolean
-
-  @Column({
-    default: false
-  })
-  is_deleted: boolean
+  is_deleted: number
 }

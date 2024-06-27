@@ -65,7 +65,7 @@ export class User {
   job: string
 
   @OneToMany(() => Team_member, (team_member) => team_member.user)
-  team_member: Team_member
+  team_member: Team_member[]
 
   @OneToOne(() => Coach, (coach) => coach.user)
   coach: Coach

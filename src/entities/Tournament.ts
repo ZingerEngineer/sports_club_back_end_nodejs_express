@@ -4,7 +4,7 @@ import { Match } from './Match'
 @Entity()
 export class Tournament {
   @PrimaryGeneratedColumn()
-  Tournament_id: number
+  tournament_id: number
 
   @Column({
     type: 'nvarchar',

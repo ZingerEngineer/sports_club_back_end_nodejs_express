@@ -35,9 +35,12 @@ export class Team_member {
 
   @Column({
     type: 'nvarchar',
-    length: 100
+    length: 100,
+    nullable: false,
+    default: 'Guest'
   })
   match_role: string
+
   @Column({
     type: 'int',
     width: 4,

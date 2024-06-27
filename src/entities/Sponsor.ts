@@ -3,10 +3,12 @@ import {
   Entity,
   Column,
   ManyToMany,
-  JoinTable
+  JoinTable,
+  JoinColumn
 } from 'typeorm'
 import { Team } from './Team'
 import { Tournament } from './Tournament'
+import { IsDeleted } from '../enums/globalEnums'
 @Entity()
 export class Sponsor {
   @PrimaryGeneratedColumn()
@@ -19,6 +21,9 @@ export class Sponsor {
   brand_name: string
 
   @ManyToMany(() => Team, (team) => team.sponsor)
+  @JoinColumn({
+    name: 'team_id'
+  })
   team: Team[]
 
   @ManyToMany(() => Tournament)
@@ -26,7 +31,10 @@ export class Sponsor {
   tournament: Tournament[]
 
   @Column({
-    default: false
+    type: 'int',
+    width: 1,
+    default: IsDeleted.EXISTS,
+    nullable: false
   })
-  is_deleted: boolean
+  is_deleted: number
 }

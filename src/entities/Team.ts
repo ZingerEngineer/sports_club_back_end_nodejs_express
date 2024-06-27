@@ -65,20 +65,32 @@ export class Team {
   matches_lost: number
 
   @ManyToOne(() => Sport, (sport) => sport.team, {
-    nullable: false
+    nullable: true
   })
   @JoinColumn({
     name: 'sport_id'
   })
   sport: Sport
 
-  @ManyToMany(() => Sponsor, (sponsor) => sponsor.team)
+  @ManyToMany(() => Sponsor, (sponsor) => sponsor.team, {
+    nullable: true
+  })
+  @JoinColumn({
+    name: 'sponsor_id'
+  })
   sponsor: Sponsor[]
 
   @OneToMany(() => Team_member, (team_member) => team_member.team)
   team_member: Team_member[]
 
-  @OneToOne(() => Coach, (coach) => coach.team)
+  @OneToOne(() => Coach, (coach) => coach.team, {
+    cascade: true,
+    orphanedRowAction: 'soft-delete',
+    nullable: true
+  })
+  @JoinColumn({
+    name: 'coach_id'
+  })
   coach: Coach
 
   @Column({
