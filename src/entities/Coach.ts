@@ -24,7 +24,6 @@ export class Coach {
   user: User
 
   @OneToOne(() => Team, (team) => team.coach, {
-    cascade: true,
     nullable: false,
     orphanedRowAction: 'soft-delete'
   })
