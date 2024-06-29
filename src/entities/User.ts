@@ -54,7 +54,14 @@ export class User {
     default: '',
     nullable: false
   })
-  dob: Date
+  dob: string
+
+  @Column({
+    type: 'int',
+    default: 0,
+    nullable: false
+  })
+  age: number
 
   @Column({
     type: 'nvarchar',
