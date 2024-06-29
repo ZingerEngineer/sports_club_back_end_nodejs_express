@@ -1,4 +1,4 @@
 export enum IsDeleted {
-  EXISTS = 1,
-  DELETED = 0
+  EXISTS = 0,
+  DELETED = 1
 }
