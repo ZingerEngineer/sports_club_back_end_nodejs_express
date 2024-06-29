@@ -17,7 +17,7 @@ export class Tournament {
     type: 'nvarchar',
     length: '120'
   })
-  title: string
+  tournament_name: string
 
   @Column({
     type: 'date'
