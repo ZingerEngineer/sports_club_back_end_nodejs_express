@@ -10,34 +10,36 @@ export class UserController {
   //Finding users by ID.
 
   async findUserById(id: number | string) {
-    const checkedId = checkIdValidity(id)
-    if (checkedId) {
-      return userRepository.findOneBy({ user_id: checkedId })
-    }
+    const checkRes = checkIdValidity(id)
+    if (checkRes === 0) return 0
+    const checkedId = checkRes.id
+    return userRepository.findOneBy({ user_id: checkedId, is_deleted: 0 })
   }
 
   async findAdminById(role: string, id: number | string) {
-    const checkedId = checkIdValidity(id)
-    if (checkedId) {
-      if (null === role || undefined === role || role !== UserRoles.ADMIN)
-        return 0
-      return userRepository.findOneBy({
-        user_id: checkedId,
-        role: role
-      })
-    }
+    const checkRes = checkIdValidity(id)
+    if (checkRes === 0) return 0
+    const checkedId = checkRes.id
+    if (null === role || undefined === role || role !== UserRoles.ADMIN)
+      return 0
+    return userRepository.findOneBy({
+      user_id: checkedId,
+      role: role,
+      is_deleted: 0
+    })
   }
 
   async findEditorById(role: string, id: number | string) {
-    const checkedId = checkIdValidity(id)
-    if (checkedId) {
-      if (null === role || undefined === role || role !== UserRoles.EDITOR)
-        return 0
-      return userRepository.findOneBy({
-        user_id: checkedId,
-        role: role
-      })
-    }
+    const checkRes = checkIdValidity(id)
+    if (checkRes === 0) return 0
+    const checkedId = checkRes.id
+    if (null === role || undefined === role || role !== UserRoles.EDITOR)
+      return 0
+    return userRepository.findOneBy({
+      user_id: checkedId,
+      role: role,
+      is_deleted: 0
+    })
   }
 
   //Finding users with names.
