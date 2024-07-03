@@ -72,12 +72,4 @@ export class Team_member {
     scale: 2
   })
   salary: number
-
-  @Column({
-    type: 'int',
-    width: 1,
-    nullable: false,
-    default: IsDeleted.EXISTS
-  })
-  is_deleted: number
 }
