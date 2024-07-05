@@ -3,7 +3,8 @@ import {
   Entity,
   Column,
   JoinColumn,
-  OneToMany
+  OneToMany,
+  DeleteDateColumn
 } from 'typeorm'
 import { Match } from './Match'
 import { IsDeleted } from '../enums/globalEnums'
@@ -20,9 +21,9 @@ export class Tournament {
   tournament_name: string
 
   @Column({
-    type: 'date'
+    type: 'datetime'
   })
-  date_held: Date
+  date_held: string
 
   @OneToMany(() => Match, (match) => match.tournament, {
     nullable: false
@@ -39,4 +40,9 @@ export class Tournament {
     nullable: false
   })
   is_deleted: number
+
+  @DeleteDateColumn({
+    type: 'datetime'
+  })
+  delete_date: string
 }

@@ -1,4 +1,10 @@
-import { PrimaryGeneratedColumn, Entity, Column, OneToMany } from 'typeorm'
+import {
+  PrimaryGeneratedColumn,
+  Entity,
+  Column,
+  OneToMany,
+  DeleteDateColumn
+} from 'typeorm'
 import { Team } from './Team'
 import { Match } from './Match'
 import { IsDeleted } from '../enums/globalEnums'
@@ -31,6 +37,11 @@ export class Sport {
     default: IsDeleted.EXISTS
   })
   is_deleted: number
+
+  @DeleteDateColumn({
+    type: 'datetime'
+  })
+  delete_date: string
 
   @OneToMany(() => Team, (team) => team.sport)
   team: Team[]

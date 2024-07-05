@@ -3,7 +3,8 @@ import {
   PrimaryGeneratedColumn,
   Column,
   OneToMany,
-  OneToOne
+  OneToOne,
+  DeleteDateColumn
 } from 'typeorm'
 import { Team_member } from './Team_member'
 import { Coach } from './Coach'
@@ -84,5 +85,10 @@ export class User {
     nullable: false
   })
   is_deleted: number
+
+  @DeleteDateColumn({
+    type: 'datetime'
+  })
+  delete_date: string
 }
 

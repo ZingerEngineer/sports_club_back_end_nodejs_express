@@ -5,7 +5,8 @@ import {
   ManyToOne,
   ManyToMany,
   JoinColumn,
-  JoinTable
+  JoinTable,
+  DeleteDateColumn
 } from 'typeorm'
 import { Team } from './Team'
 import { Sport } from './Sport'
@@ -95,4 +96,9 @@ export class Match {
     default: IsDeleted.EXISTS
   })
   is_deleted: number
+
+  @DeleteDateColumn({
+    type: 'datetime'
+  })
+  delete_date: string
 }

@@ -6,7 +6,8 @@ import {
   ManyToMany,
   OneToOne,
   JoinColumn,
-  OneToMany
+  OneToMany,
+  DeleteDateColumn
 } from 'typeorm'
 import { Sport } from './Sport'
 import { Sponsor } from './Sponsor'
@@ -100,4 +101,9 @@ export class Team {
     nullable: false
   })
   is_deleted: number
+
+  @DeleteDateColumn({
+    type: 'datetime'
+  })
+  delete_date: string
 }
