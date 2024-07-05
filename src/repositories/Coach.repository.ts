@@ -3,52 +3,173 @@ import { Coach } from '../entities/Coach'
 import { checkIdValidity } from '../utils/checkIdValidity'
 
 export const coachRepository = AppDataSource.getRepository(Coach).extend({
-  findCoachById(id: number | string) {
+  async coaches() {
+    return coachRepository
+      .createQueryBuilder('coach')
+      .innerJoinAndSelect('coach.user', 'user')
+      .innerJoinAndSelect('coach.team', 'team')
+      .select([
+        'coach.coach_id',
+        'user.user_id',
+        'user.role',
+        'user.first_name',
+        'user.last_name',
+        'user.dob',
+        'user.age',
+        'user.job',
+        'user.is_deleted',
+        'team.team_id',
+        'team.team_name'
+      ])
+      .where('team.is_deleted = :isTeamDeleted', { isTeamDeleted: 0 })
+      .andWhere('user.is_deleted = :isUserDeleted', { isUserDeleted: 0 })
+      .getMany()
+  },
+
+  async findCoachById(id: number | string) {
     const checkRes = checkIdValidity(id)
     if (checkRes === 0) return 0
     const checkedId = checkRes.id
-    return coachRepository
+    return await coachRepository
       .createQueryBuilder('coach')
-      .select('coach_id')
-      .where('coach.coach_id = :coach_id', { checkedId })
-      .leftJoin('coach.user', 'user')
-      .andWhere('user.is_deleted = 0')
+      .innerJoinAndSelect('coach.user', 'user')
+      .innerJoinAndSelect('coach.team', 'team')
+      .select([
+        'coach.coach_id',
+        'user.user_id',
+        'user.role',
+        'user.first_name',
+        'user.last_name',
+        'user.dob',
+        'user.age',
+        'user.job',
+        'user.is_deleted',
+        'team.team_id',
+        'team.team_name'
+      ])
+      .where('coach.coach_id = :checkedId', { checkedId })
+      .andWhere('team.is_deleted = :isTeamDeleted', { isTeamDeleted: 0 })
+      .andWhere('user.is_deleted = :isUserDeleted', { isUserDeleted: 0 })
       .getOne()
   },
-  findCoachByFirstName(firstName: string) {
-    return coachRepository
+  async findCoachByFirstName(firstName: string) {
+    return await coachRepository
       .createQueryBuilder('coach')
-      .leftJoinAndSelect('coach.user', 'user')
+      .innerJoinAndSelect('coach.user', 'user')
+      .innerJoinAndSelect('coach.team', 'team')
+      .select([
+        'coach.coach_id',
+        'user.user_id',
+        'user.role',
+        'user.first_name',
+        'user.last_name',
+        'user.dob',
+        'user.age',
+        'user.job',
+        'user.is_deleted',
+        'team.team_id',
+        'team.team_name'
+      ])
       .where('user.first_name = :firstName', { firstName })
+      .where('team.is_deleted = :isTeamDeleted', { isTeamDeleted: 0 })
+      .andWhere('user.is_deleted = :isUserDeleted', { isUserDeleted: 0 })
       .getMany()
   },
-  findCoachByLastName(lastName: string) {
-    return coachRepository
+  async findCoachByLastName(lastName: string) {
+    return await coachRepository
       .createQueryBuilder('coach')
-      .leftJoinAndSelect('coach.user', 'user')
-      .where('user.last_name = :lastName', { lastName })
+      .innerJoinAndSelect('coach.user', 'user')
+      .innerJoinAndSelect('coach.team', 'team')
+      .select([
+        'coach.coach_id',
+        'user.user_id',
+        'user.role',
+        'user.first_name',
+        'user.last_name',
+        'user.dob',
+        'user.age',
+        'user.job',
+        'user.is_deleted',
+        'team.team_id',
+        'team.team_name'
+      ])
+      .where('user.first_name = :lastName', { lastName })
+      .where('team.is_deleted = :isTeamDeleted', { isTeamDeleted: 0 })
+      .andWhere('user.is_deleted = :isUserDeleted', { isUserDeleted: 0 })
       .getMany()
   },
-  findCoachByName(firstName: string, lastName: string) {
-    return coachRepository
+  async findCoachByName(firstName: string, lastName: string) {
+    return await coachRepository
       .createQueryBuilder('coach')
-      .leftJoinAndSelect('coach.user', 'user')
+      .innerJoinAndSelect('coach.user', 'user')
+      .innerJoinAndSelect('coach.team', 'team')
+      .select([
+        'coach.coach_id',
+        'user.user_id',
+        'user.role',
+        'user.first_name',
+        'user.last_name',
+        'user.dob',
+        'user.age',
+        'user.job',
+        'user.is_deleted',
+        'team.team_id',
+        'team.team_name'
+      ])
       .where('user.first_name = :firstName', { firstName })
       .andWhere('user.last_name = :lastName', { lastName })
-      .andWhere('user.is_deleted = 0')
+      .andWhere('team.is_deleted = :isTeamDeleted', { isTeamDeleted: 0 })
+      .andWhere('user.is_deleted = :isUserDeleted', { isUserDeleted: 0 })
       .getMany()
   },
-  findCoachByTeam(teamId: string | number) {
+  async findCoachByTeamId(teamId: string | number) {
     const checkRes = checkIdValidity(teamId)
     if (checkRes === 0) return 0
     const checkedId = checkRes.id
-    return coachRepository
+    return await coachRepository
       .createQueryBuilder('coach')
-      .leftJoinAndSelect('coach.team', 'team')
-      .where('team.team_id = :teamId', { checkedId })
-      .andWhere('team.is_deleted = 0')
-      .leftJoinAndSelect('coach.user', 'user')
-      .andWhere('user.is_deleted = 0')
+      .innerJoinAndSelect('coach.user', 'user')
+      .innerJoinAndSelect('coach.team', 'team')
+      .select([
+        'coach.coach_id',
+        'user.user_id',
+        'user.role',
+        'user.first_name',
+        'user.last_name',
+        'user.dob',
+        'user.age',
+        'user.job',
+        'user.is_deleted',
+        'team.team_id',
+        'team.team_name'
+      ])
+      .where('team.team_id = :teamId', { teamId })
+      .andWhere('team.is_deleted = :isTeamDeleted', { isTeamDeleted: 0 })
+      .andWhere('user.is_deleted = :isUserDeleted', { isUserDeleted: 0 })
+      .getOne()
+  },
+
+  async findCoachByTeamName(teamName: string) {
+    return await coachRepository
+      .createQueryBuilder('coach')
+      .innerJoinAndSelect('coach.user', 'user')
+      .innerJoinAndSelect('coach.team', 'team')
+      .select([
+        'coach.coach_id',
+        'user.user_id',
+        'user.role',
+        'user.first_name',
+        'user.last_name',
+        'user.dob',
+        'user.age',
+        'user.job',
+        'user.is_deleted',
+        'team.team_id',
+        'team.team_name'
+      ])
+      .where('team.team_name = :teamName', { teamName })
+      .andWhere('team.is_deleted = :isTeamDeleted', { isTeamDeleted: 0 })
+      .andWhere('user.is_deleted = :isUserDeleted', { isUserDeleted: 0 })
       .getOne()
   }
 })

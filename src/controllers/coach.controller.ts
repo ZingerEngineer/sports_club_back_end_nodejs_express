@@ -1,19 +1,31 @@
 import { coachRepository } from '../repositories/Coach.repository'
-import { checkIdValidity } from '../utils/checkIdValidity'
 
 export class CoachController {
-  //Find all coaches.
-  async sports() {
-    return coachRepository.find()
+  async findAllCoaches() {
+    return await coachRepository.coaches()
   }
-  //Finding a coach by ID.
 
   async findCoachById(id: number | string) {
-    const checkRes = checkIdValidity(id)
-    if (checkRes === 0) return 0
-    const checkedId = checkRes.id
-    return coachRepository.findOneBy({ coach_id: checkedId })
+    return await coachRepository.findCoachById(id)
   }
 
-  //Finding a sport with name.
+  async findCoachByFirstName(firstName: string) {
+    return await coachRepository.findCoachByFirstName(firstName)
+  }
+
+  async findCoachByLastName(lastName: string) {
+    return await coachRepository.findCoachByLastName(lastName)
+  }
+
+  async findCoachByName(firstName: string, lastName: string) {
+    return await coachRepository.findCoachByName(firstName, lastName)
+  }
+
+  async findCoachByTeamId(teamId: string | number) {
+    return await coachRepository.findCoachByTeamId(teamId)
+  }
+
+  async findCoachByTeamName(teamName: string) {
+    return await coachRepository.findCoachByTeamName(teamName)
+  }
 }
