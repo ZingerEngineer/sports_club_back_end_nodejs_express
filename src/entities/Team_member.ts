@@ -7,7 +7,6 @@ import {
 } from 'typeorm'
 import { User } from './User'
 import { Team } from './Team'
-import { IsDeleted } from '../enums/globalEnums'
 
 @Entity()
 export class Team_member {
