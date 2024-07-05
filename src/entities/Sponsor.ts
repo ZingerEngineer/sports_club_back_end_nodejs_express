@@ -3,7 +3,8 @@ import {
   Entity,
   Column,
   ManyToMany,
-  JoinTable
+  JoinTable,
+  DeleteDateColumn
 } from 'typeorm'
 import { Team } from './Team'
 import { Tournament } from './Tournament'
@@ -54,4 +55,9 @@ export class Sponsor {
     nullable: false
   })
   is_deleted: number
+
+  @DeleteDateColumn({
+    type: 'datetime'
+  })
+  delete_date: string
 }
