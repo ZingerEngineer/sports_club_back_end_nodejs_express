@@ -2,7 +2,8 @@ import { AppDataSource } from '../data-source'
 import { Tournament } from '../entities/Tournament'
 import { IsDeleted } from '../enums/globalEnums'
 import { checkIdValidity } from '../utils/checkIdValidity'
-
+import { matchRepository } from './Match.repository'
+import { teamRepository } from './Team.repository'
 export const tournamentRepository = AppDataSource.getRepository(
   Tournament
 ).extend({
@@ -161,21 +162,27 @@ export const tournamentRepository = AppDataSource.getRepository(
 
   async createNewTournament(
     title: string,
-    team_name?: string,
-    tournament_name?: string
+    matchId?: string | number,
+    brandName?: string,
+    sponsId?: string
   ) {
-    const newSponsor = tournamentRepository.create()
+    const newTournament = tournamentRepository.create()
     tournamentRepository
       .createQueryBuilder('tournament')
       .update(Tournament)
       .set({
-        tournament_name: title
+        tournament_name: title,
+        date_held: () => 'GETDATE()'
       })
 
-    if (team_name || team_name !== '') {
+    if (matchId || matchId !== '') {
       try {
-        const team = await teamRepository.findTeamByName(team_name)
-        if (team === 0) return 0
+        const checkRes = checkIdValidity(matchId)
+        if (checkRes === 0) return 0
+        const checkedMatchId = checkRes.id
+
+        const match = await matchRepository.findMatchById(matchId)
+        if (match === 0) return 0
         const teamId = team.team_id
 
         await tournamentRepository

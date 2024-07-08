@@ -143,7 +143,7 @@ export const coachRepository = AppDataSource.getRepository(Coach).extend({
         'team.team_id',
         'team.team_name'
       ])
-      .where('team.team_id = :teamId', { teamId })
+      .where('team.team_id = :teamId', { checkedId })
       .andWhere('team.is_deleted = :isTeamDeleted', { isTeamDeleted: 0 })
       .andWhere('user.is_deleted = :isUserDeleted', { isUserDeleted: 0 })
       .getOne()
@@ -171,5 +171,6 @@ export const coachRepository = AppDataSource.getRepository(Coach).extend({
       .andWhere('team.is_deleted = :isTeamDeleted', { isTeamDeleted: 0 })
       .andWhere('user.is_deleted = :isUserDeleted', { isUserDeleted: 0 })
       .getOne()
-  }
+  },
+  async createNewCoach() {}
 })

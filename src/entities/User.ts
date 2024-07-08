@@ -2,9 +2,10 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  OneToMany,
+  ManyToMany,
   OneToOne,
-  DeleteDateColumn
+  DeleteDateColumn,
+  JoinTable
 } from 'typeorm'
 import { Team_member } from './Team_member'
 import { Coach } from './Coach'
@@ -72,12 +73,32 @@ export class User {
   })
   job: string
 
-  @OneToMany(() => Team_member, (team_member) => team_member.user)
-  team_member: Team_member[]
-
-  @OneToOne(() => Coach, (coach) => coach.user)
+  @ManyToMany(() => Team_member, (teamMember) => teamMember.user)
+  @JoinTable({
+    name: 'team_member_user',
+    joinColumn: {
+      name: 'user_id',
+      referencedColumnName: 'user_id'
+    },
+    inverseJoinColumn: {
+      name: 'team_mem_id',
+      referencedColumnName: 'team_mem_id'
+    }
+  })
+  Team_member: Team_member
+  @ManyToMany(() => Coach, (coach) => coach.user)
+  @JoinTable({
+    name: 'coach_user',
+    joinColumn: {
+      name: 'user_id',
+      referencedColumnName: 'user_id'
+    },
+    inverseJoinColumn: {
+      name: 'coach_id',
+      referencedColumnName: 'user_id'
+    }
+  })
   coach: Coach
-
   @Column({
     type: 'int',
     width: 1,
