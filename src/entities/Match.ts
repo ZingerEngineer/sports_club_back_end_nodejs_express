@@ -44,7 +44,7 @@ export class Match {
   })
   tournament: Tournament
 
-  @ManyToMany(() => Team, (team) => team.team_id, {
+  @ManyToMany(() => Team, (team) => team.wonMatches, {
     nullable: false
   })
   @JoinTable({
@@ -60,7 +60,7 @@ export class Match {
   })
   won_team: Team[]
 
-  @ManyToMany(() => Team, (team) => team.team_id, {
+  @ManyToMany(() => Team, (team) => team.lostMatches, {
     nullable: false
   })
   @JoinTable({

@@ -3,7 +3,8 @@ import {
   Entity,
   OneToOne,
   JoinColumn,
-  PrimaryGeneratedColumn
+  PrimaryGeneratedColumn,
+  ManyToMany
 } from 'typeorm'
 import { User } from './User'
 import { Team } from './Team'

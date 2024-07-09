@@ -166,6 +166,11 @@ export const tournamentRepository = AppDataSource.getRepository(
     brandName?: string,
     sponsId?: string
   ) {
+    if (!matchId) return 0
+    const matchIdCheckRes = checkIdValidity(matchId)
+    if (matchIdCheckRes === 0) return 0
+    const checkedMatchId = matchIdCheckRes.id
+    const match = matchRepository.findMatchById(checkedMatchId)
     const newTournament = tournamentRepository.create()
     tournamentRepository
       .createQueryBuilder('tournament')
