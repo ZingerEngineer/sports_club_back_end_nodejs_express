@@ -1,3 +1,3 @@
-import { tournamentRepository } from '../repositories/Tournament.repository'
+import { Request, Response } from 'express'
 
-export class TournamentController {}
+export const TournamentController = (req: Request, res: Response) => {}

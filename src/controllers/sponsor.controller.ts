@@ -1,24 +1,3 @@
-import { IsDeleted } from '../enums/globalEnums'
-import { sponsorRepository } from '../repositories/Sponsor.repository'
-import { checkIdValidity } from '../utils/checkIdValidity'
+import { Request, Response } from 'express'
 
-export class SponsorController {
-  //Find all sports.
-  async findSponsors(isDeleted: IsDeleted) {
-    return await sponsorRepository.findSponsors(isDeleted)
-  }
-
-  async findSponsorById(id: number | string) {
-    return await sponsorRepository.findSponsorById(id)
-  }
-
-  //Finding a sport with name.
-  async findSponsorByName(sponsor_name: string) {
-    if (null === sponsor_name || undefined === sponsor_name) return 0
-    return await sponsorRepository.findSponsorByName(sponsor_name)
-  }
-
-  async softDeleteSponsor(id:number | string){
-    await 
-  }
-}
+export const SponsorController = (req: Request, res: Response) => {}
