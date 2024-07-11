@@ -14,6 +14,7 @@ import { Sponsor } from './Sponsor'
 import { Team_member } from './Team_member'
 import { Coach } from './Coach'
 import { IsDeleted } from '../enums/globalEnums'
+import { Match } from './Match'
 
 export enum TeamType {
   CANDIDATES = 'candidates',
@@ -89,6 +90,12 @@ export class Team {
     orphanedRowAction: 'soft-delete',
     nullable: true
   })
+  @ManyToMany(() => Match, (match) => match.won_teams)
+  won_matches: Match[]
+
+  @ManyToMany(() => Match, (match) => match.lost_teams)
+  lost_matches: Match[]
+
   @JoinColumn({
     name: 'coach_id'
   })

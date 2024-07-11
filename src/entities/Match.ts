@@ -44,7 +44,7 @@ export class Match {
   })
   tournament: Tournament
 
-  @ManyToMany(() => Team, (team) => team.wonMatches, {
+  @ManyToMany(() => Team, (team) => team.won_matches, {
     nullable: false
   })
   @JoinTable({
@@ -58,9 +58,9 @@ export class Match {
       referencedColumnName: 'team_id'
     }
   })
-  won_team: Team[]
+  won_teams: Team[]
 
-  @ManyToMany(() => Team, (team) => team.lostMatches, {
+  @ManyToMany(() => Team, (team) => team.lost_matches, {
     nullable: false
   })
   @JoinTable({
@@ -74,7 +74,7 @@ export class Match {
       referencedColumnName: 'team_id'
     }
   })
-  lost_team: Team[]
+  lost_teams: Team[]
 
   @Column({
     type: 'date'
