@@ -35,6 +35,22 @@ export class User {
   role: string
 
   @Column({
+    type: 'varchar',
+    length: 15,
+    default: '',
+    nullable: false
+  })
+  phone: string
+
+  @Column({
+    type: 'varchar',
+    length: 40,
+    default: '',
+    nullable: false
+  })
+  email: string
+
+  @Column({
     type: 'nvarchar',
     length: 25,
     default: 'Guest',
