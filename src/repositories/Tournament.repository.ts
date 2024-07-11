@@ -2,8 +2,8 @@ import { AppDataSource } from '../data-source'
 import { Tournament } from '../entities/Tournament'
 import { IsDeleted } from '../enums/globalEnums'
 import { checkIdValidity } from '../utils/checkIdValidity'
-import { matchRepository } from './Match.repository'
-import { teamRepository } from './Team.repository'
+import { matchRepository } from './match.repository'
+import { teamRepository } from './team.repository'
 export const tournamentRepository = AppDataSource.getRepository(
   Tournament
 ).extend({
@@ -180,40 +180,39 @@ export const tournamentRepository = AppDataSource.getRepository(
         date_held: () => 'GETDATE()'
       })
 
-    if (matchId || matchId !== '') {
-      try {
-        const checkRes = checkIdValidity(matchId)
-        if (checkRes === 0) return 0
-        const checkedMatchId = checkRes.id
+    // if (matchId || matchId !== '') {
+    //   try {
+    //     const checkRes = checkIdValidity(matchId)
+    //     if (checkRes === 0) return 0
+    //     const checkedMatchId = checkRes.id
 
-        const match = await matchRepository.findMatchById(matchId)
-        if (match === 0) return 0
-        const teamId = team.team_id
+    //     const match = await matchRepository.findMatchById(matchId)
+    //     if (match === 0) return 0
+    //     const match = team.team_id
 
-        await tournamentRepository
-          .createQueryBuilder('sponsor')
-          .relation(Sponsor, 'sponsored_teams')
-          .of(newSponsor.sponsor_id)
-          .add(teamId)
-      } catch (error) {
-        console.log()
-      }
-    }
-    if (tournament_name || tournament_name !== '') {
-      try {
-        const tournament = await tournamentRepository.findTournamentByName(
-          tournament_name
-        )
-        if (tournament === 0) return 0
-        const tournamentId = tournament.tournament_id
-        await tournamentRepository
-          .createQueryBuilder('sponsor')
-          .relation(Sponsor, 'sponsored_tournaments')
-          .of(newSponsor.sponsor_id)
-          .add(tournamentId)
-      } catch (error) {
-        console.log(error)
-      }
-    }
+    //     await tournamentRepository
+    //       .createQueryBuilder('sponsor')
+    //       .relation(Sponsor, 'sponsored_teams')
+    //       .of(newSponsor.sponsor_id)
+    //       .add(teamId)
+    //   } catch (error) {
+    //     console.log()
+    //   }
+    // }
+    // if (tournament_name || tournament_name !== '') {
+    //   try {
+    //     const tournament = await tournamentRepository.findTournamentByName(
+    //       tournament_name
+    //     )
+    //     if (tournament === 0) return 0
+    //     const tournamentId = tournament.tournament_id
+    //     await tournamentRepository
+    //       .createQueryBuilder('sponsor')
+    //       .relation(Sponsor, 'sponsored_tournaments')
+    //       .of(newSponsor.sponsor_id)
+    //       .add(tournamentId)
+    //   } catch (error) {
+    //     console.log(error)
+    //   }
   }
 })
