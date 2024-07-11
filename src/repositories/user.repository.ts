@@ -6,9 +6,9 @@ import { checkIdValidity } from '../utils/checkIdValidity'
 import { validateDate } from '../utils/validateDate'
 import { validateName } from '../utils/validateName'
 import { validateTruthyNotEmptyString } from '../utils/validateTruthyNotEmptyString'
-import { coachRepository } from './Coach.repository'
-import { teamRepository } from './Team.repository'
-import { teamMemberRepository } from './Team_member.repository'
+import { coachRepository } from './coach.repository'
+import { teamRepository } from './team.repository'
+import { teamMemberRepository } from './teamMember.repository'
 
 export const userRepository = AppDataSource.getRepository(User).extend({
   async users(isDeleted?: number) {
