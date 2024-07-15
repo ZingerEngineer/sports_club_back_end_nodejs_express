@@ -1,18 +1,18 @@
 import { AppDataSource } from '../data-source'
-import { Team_member } from '../entities/Team_member'
+import { TeamMember } from '../entities/TeamMember'
 import { IsDeleted } from '../enums/globalEnums'
 import { checkIdValidity } from '../utils/checkIdValidity'
 
 export const teamMemberRepository = AppDataSource.getRepository(
-  Team_member
+  TeamMember
 ).extend({
   async teamMembers(isDeleted: number | null) {
     const query = teamMemberRepository
-      .createQueryBuilder('team_member')
-      .innerJoin('team_member.user', 'user')
-      .innerJoin('team_member.team', 'team')
+      .createQueryBuilder('teamMember')
+      .innerJoin('teamMember.user', 'user')
+      .innerJoin('teamMember.team', 'team')
       .select([
-        'team_member.team_mem_id',
+        'teamMember.team_mem_id',
         'user.user_id',
         'user.role',
         'user.first_name',
@@ -36,11 +36,11 @@ export const teamMemberRepository = AppDataSource.getRepository(
     if (checkRes === 0) return 0
     const checkedId = checkRes.id
     return await teamMemberRepository
-      .createQueryBuilder('team_member')
-      .innerJoin('team_member.user', 'user')
-      .innerJoin('team_member.team', 'team')
+      .createQueryBuilder('teamMember')
+      .innerJoin('teamMember.user', 'user')
+      .innerJoin('teamMember.team', 'team')
       .select([
-        'team_member.team_mem_id',
+        'teamMember.team_mem_id',
         'user.user_id',
         'user.role',
         'user.first_name',
@@ -52,7 +52,7 @@ export const teamMemberRepository = AppDataSource.getRepository(
         'team.team_id',
         'team.team_name'
       ])
-      .where('team_member.team_mem_id = :teamMemId', { teamMemId: checkedId })
+      .where('teamMember.team_mem_id = :teamMemId', { teamMemId: checkedId })
       .getOne()
   }
 })

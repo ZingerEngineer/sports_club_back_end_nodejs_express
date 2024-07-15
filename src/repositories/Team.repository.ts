@@ -6,7 +6,7 @@ import { checkIdValidity } from '../utils/checkIdValidity'
 export const teamRepository = AppDataSource.getRepository(Team).extend({
   async findTeamById(id: string | number) {
     const checkRes = checkIdValidity(id)
-    if (checkRes === 0) return 0
+    if (!checkRes) return null
     const teamId = checkRes.id
 
     const team = await teamRepository
@@ -29,7 +29,7 @@ export const teamRepository = AppDataSource.getRepository(Team).extend({
       ])
       .where('team.team_id = :teamId', { teamId })
       .getOne()
-    if (!team) return 0
+    if (!team) return null
     return team
   },
   async findTeamByName(team_name: string) {
@@ -53,16 +53,16 @@ export const teamRepository = AppDataSource.getRepository(Team).extend({
       ])
       .where('team.team_name = :teamName', { teamName: team_name })
       .getOne()
-    if (!team) return 0
+    if (!team) return null
     return team
   },
   async softDeleteTeamById(id: string | number) {
     const checkRes = checkIdValidity(id)
-    if (checkRes === 0) return 0
+    if (!checkRes) return null
     const teamId = checkRes.id
 
     const teamAvailableCheck = await teamRepository.findTeamById(teamId)
-    if (teamAvailableCheck === 0) return 0
+    if (!teamAvailableCheck) return null
     return await teamRepository
       .createQueryBuilder('team')
       .update(Team)
@@ -75,13 +75,13 @@ export const teamRepository = AppDataSource.getRepository(Team).extend({
   },
   async softDeleteTeamByName(team_name: string) {
     const teamAvailableCheck = await teamRepository.findTeamByName(team_name)
-    if (teamAvailableCheck === 0) return 0
+    if (!teamAvailableCheck) return null
     return await teamRepository
       .createQueryBuilder('team')
       .update(Team)
       .set({
-        is_deleted: IsDeleted.DELETED,
-        delete_date: () => 'GETDATE()'
+        isDeleted: IsDeleted.DELETED,
+        deletedAt: () => 'GETDATE()'
       })
       .where('team.team_name = :teamName', { teamName: team_name })
       .execute()
