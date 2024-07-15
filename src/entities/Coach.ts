@@ -1,35 +1,25 @@
-import {
-  Column,
-  Entity,
-  OneToOne,
-  JoinColumn,
-  PrimaryGeneratedColumn,
-  ManyToMany
-} from 'typeorm'
+import { Column, Entity, OneToOne, PrimaryGeneratedColumn } from 'typeorm'
 import { User } from './User'
 import { Team } from './Team'
 
 @Entity()
 export class Coach {
   @PrimaryGeneratedColumn()
-  coach_id: number
+  coachId: number
 
   @OneToOne(() => User, (user) => user.coach, {
+    onDelete: 'CASCADE',
     cascade: true,
     orphanedRowAction: 'soft-delete',
     nullable: false
   })
-  @JoinColumn({
-    name: 'user_id'
-  })
   user: User
 
   @OneToOne(() => Team, (team) => team.coach, {
-    nullable: false,
-    orphanedRowAction: 'soft-delete'
-  })
-  @JoinColumn({
-    name: 'team_id'
+    onDelete: 'CASCADE',
+    cascade: true,
+    orphanedRowAction: 'soft-delete',
+    nullable: false
   })
   team: Team
 

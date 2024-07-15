@@ -12,15 +12,12 @@ import { Team } from './Team'
 import { Sport } from './Sport'
 import { Tournament } from './Tournament'
 import { IsDeleted } from '../enums/globalEnums'
-export enum MatchType {
-  SCRIMMAGE = 'scrimmage',
-  MATCHMAKING = 'match_making'
-}
+import { MatchType } from '../enums/match.enums'
 
 @Entity()
 export class Match {
   @PrimaryGeneratedColumn()
-  match_id: number
+  matchId: number
 
   @Column({
     type: 'nvarchar',
@@ -28,58 +25,48 @@ export class Match {
     default: MatchType.SCRIMMAGE,
     nullable: false
   })
-  match_type: string
+  type: MatchType
 
-  @ManyToOne(() => Sport, (sport) => sport.sport_id, {
-    nullable: false
-  })
-  @JoinColumn({
-    name: 'sport_id'
-  })
+  @ManyToOne(() => Sport, (sport) => sport.matches)
   sport: Sport
 
-  @ManyToOne(() => Tournament, (tournament) => tournament.match)
-  @JoinColumn({
-    name: 'tournament_id'
-  })
+  @ManyToOne(() => Tournament, (tournament) => tournament.matches)
   tournament: Tournament
 
-  @ManyToMany(() => Team, (team) => team.won_matches, {
-    nullable: false
-  })
+  @ManyToMany(() => Team, (team) => team.wonMatches)
   @JoinTable({
     name: 'won_team_match',
     joinColumn: {
-      name: 'match_id',
-      referencedColumnName: 'match_id'
+      name: 'matchId',
+      referencedColumnName: 'matchId'
     },
     inverseJoinColumn: {
       name: 'won_team_id',
-      referencedColumnName: 'team_id'
+      referencedColumnName: 'teamId'
     }
   })
-  won_teams: Team[]
+  wonTeams: Team[]
 
-  @ManyToMany(() => Team, (team) => team.lost_matches, {
-    nullable: false
-  })
+  @ManyToMany(() => Team, (team) => team.lostMatches)
   @JoinTable({
     name: 'lost_team_match',
     joinColumn: {
-      name: 'match_id',
-      referencedColumnName: 'match_id'
+      name: 'matchId',
+      referencedColumnName: 'matchId'
     },
     inverseJoinColumn: {
       name: 'lost_team_id',
-      referencedColumnName: 'team_id'
+      referencedColumnName: 'teamId'
     }
   })
-  lost_teams: Team[]
+  lostTeams: Team[]
 
   @Column({
-    type: 'date'
+    type: 'datetime',
+    default: () => 'GETDATE()',
+    nullable: false
   })
-  date_held: Date
+  createdAt: Date
 
   @Column({
     type: 'time',
@@ -87,7 +74,7 @@ export class Match {
     nullable: false,
     default: '00:00:00.000'
   })
-  match_duration: string
+  duration: string
 
   @Column({
     type: 'int',
@@ -95,10 +82,10 @@ export class Match {
     nullable: false,
     default: IsDeleted.EXISTS
   })
-  is_deleted: number
+  isDeleted: IsDeleted
 
   @DeleteDateColumn({
     type: 'datetime'
   })
-  delete_date: string
+  deletedAt: Date
 }

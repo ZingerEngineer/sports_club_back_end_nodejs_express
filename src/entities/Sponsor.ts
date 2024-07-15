@@ -12,41 +12,56 @@ import { IsDeleted } from '../enums/globalEnums'
 @Entity()
 export class Sponsor {
   @PrimaryGeneratedColumn()
-  sponsor_id: number
+  sponsorId: number
 
   @Column({
     type: 'nvarchar',
     length: '75'
   })
-  brand_name: string
+  name: string
 
-  @ManyToMany(() => Team, (team) => team.sponsor)
+  @ManyToMany(() => Team, (teams) => teams.sponsors, {
+    cascade: true,
+    onDelete: 'CASCADE',
+    orphanedRowAction: 'soft-delete'
+  })
   @JoinTable({
     name: 'sponsored_teams',
     joinColumn: {
-      name: 'sponsor_id',
-      referencedColumnName: 'sponsor_id'
+      name: 'sponsorId',
+      referencedColumnName: 'sponsorId'
     },
     inverseJoinColumn: {
-      name: 'team_id',
-      referencedColumnName: 'team_id'
+      name: 'teamId',
+      referencedColumnName: 'teamId'
     }
   })
-  team: Team[]
+  teams: Team[]
 
-  @ManyToMany(() => Tournament)
+  @ManyToMany(() => Tournament, (tournaments) => tournaments.sponsors, {
+    cascade: true,
+    onDelete: 'CASCADE',
+    orphanedRowAction: 'soft-delete'
+  })
   @JoinTable({
     name: 'sponsored_tournaments',
     joinColumn: {
-      name: 'sponsor_id',
-      referencedColumnName: 'sponsor_id'
+      name: 'sponsorId',
+      referencedColumnName: 'sponsorId'
     },
     inverseJoinColumn: {
-      name: 'tournament_id',
-      referencedColumnName: 'tournament_id'
+      name: 'tournamentId',
+      referencedColumnName: 'tournamentId'
     }
   })
-  tournament: Tournament[]
+  tournaments: Tournament[]
+
+  @Column({
+    type: 'datetime',
+    default: () => 'GETDATE()',
+    nullable: false
+  })
+  createdAt: Date
 
   @Column({
     type: 'int',
@@ -54,10 +69,10 @@ export class Sponsor {
     default: IsDeleted.EXISTS,
     nullable: false
   })
-  is_deleted: number
+  isDeleted: IsDeleted
 
   @DeleteDateColumn({
     type: 'datetime'
   })
-  delete_date: string
+  deletedAt: Date
 }

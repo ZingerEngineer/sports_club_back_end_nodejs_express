@@ -4,27 +4,19 @@ import {
   Column,
   OneToOne,
   DeleteDateColumn,
-  OneToMany
+  OneToMany,
+  JoinColumn
 } from 'typeorm'
-import { Team_member } from './Team_member'
+import { TeamMember } from './TeamMember'
 import { Coach } from './Coach'
 import { IsDeleted } from '../enums/globalEnums'
+import { UserGenders, UserJobs, UserRoles } from '../enums/user.enums'
+import { Session } from './Session'
 
-export enum UserRoles {
-  ADMIN = 'admin',
-  EDITOR = 'editor',
-  USER = 'user'
-}
-
-export enum UserJobs {
-  GUEST = 'guest',
-  TEAMMEMBER = 'team_member',
-  COACH = 'coach'
-}
 @Entity()
 export class User {
   @PrimaryGeneratedColumn()
-  user_id: number
+  userId: number
 
   @Column({
     type: 'nvarchar',
@@ -32,7 +24,18 @@ export class User {
     default: UserRoles.USER,
     nullable: false
   })
-  role: string
+  role: UserRoles
+
+  @OneToOne(() => Session, (session) => session.user, {
+    cascade: true,
+    onDelete: 'CASCADE',
+    orphanedRowAction: 'soft-delete',
+    nullable: false
+  })
+  @JoinColumn({
+    name: 'sessionId'
+  })
+  session: Session
 
   @Column({
     type: 'varchar',
@@ -51,12 +54,19 @@ export class User {
   email: string
 
   @Column({
+    type: 'varchar',
+    length: 40,
+    nullable: false
+  })
+  password: string
+
+  @Column({
     type: 'nvarchar',
     length: 25,
     default: 'Guest',
     nullable: false
   })
-  first_name: string
+  firstName: string
 
   @Column({
     type: 'nvarchar',
@@ -64,14 +74,22 @@ export class User {
     default: '',
     nullable: false
   })
-  last_name: string
+  lastName: string
+
+  @Column({
+    type: 'nvarchar',
+    length: 10,
+    default: '',
+    nullable: false
+  })
+  gender: UserGenders
 
   @Column({
     type: 'date',
     default: '',
     nullable: false
   })
-  dob: string
+  dob: Date
 
   @Column({
     type: 'int',
@@ -86,13 +104,20 @@ export class User {
     nullable: false,
     default: UserJobs.GUEST
   })
-  job: string
+  job: UserJobs
 
-  @OneToMany(() => Team_member, (teamMember) => teamMember.user)
-  team_member: Team_member
+  @OneToMany(() => TeamMember, (teamMembers) => teamMembers.user)
+  teamMembers: TeamMember
 
   @OneToOne(() => Coach, (coach) => coach.user)
   coach: Coach
+
+  @Column({
+    type: 'datetime',
+    default: () => 'GETDATE()',
+    nullable: false
+  })
+  createdAt: Date
 
   @Column({
     type: 'int',
@@ -100,11 +125,11 @@ export class User {
     default: IsDeleted.EXISTS,
     nullable: false
   })
-  is_deleted: number
+  isDeleted: IsDeleted
 
   @DeleteDateColumn({
     type: 'datetime'
   })
-  delete_date: string
+  deletedAt: Date
 }
 

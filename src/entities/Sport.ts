@@ -11,41 +11,57 @@ import { IsDeleted } from '../enums/globalEnums'
 @Entity()
 export class Sport {
   @PrimaryGeneratedColumn()
-  sport_id: number
+  sportId: number
 
   @Column({
     type: 'nvarchar',
     length: '75'
   })
-  sport_name: string
+  name: string
 
   @Column({
     type: 'nvarchar',
     length: '250'
   })
-  sport_description: string
+  description: string
 
   @Column({
     type: 'nvarchar',
     length: '400'
   })
-  sport_rules: string
+  rules: string
+
+  @Column({
+    type: 'datetime',
+    default: () => 'GETDATE()',
+    nullable: false
+  })
+  createdAt: Date
+
   @Column({
     type: 'int',
     width: 1,
     nullable: false,
     default: IsDeleted.EXISTS
   })
-  is_deleted: number
+  isDeleted: IsDeleted
 
   @DeleteDateColumn({
     type: 'datetime'
   })
-  delete_date: string
+  deletedAt: Date
 
-  @OneToMany(() => Team, (team) => team.sport)
-  team: Team[]
+  @OneToMany(() => Team, (teams) => teams.sport, {
+    onDelete: 'CASCADE',
+    cascade: true,
+    orphanedRowAction: 'soft-delete'
+  })
+  teams: Team[]
 
-  @OneToMany(() => Match, (match) => match.sport)
-  match: Match[]
+  @OneToMany(() => Match, (matches) => matches.sport, {
+    onDelete: 'CASCADE',
+    cascade: true,
+    orphanedRowAction: 'soft-delete'
+  })
+  matches: Match[]
 }

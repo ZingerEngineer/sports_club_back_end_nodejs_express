@@ -4,34 +4,38 @@ import {
   Column,
   JoinColumn,
   OneToMany,
-  DeleteDateColumn
+  DeleteDateColumn,
+  ManyToMany
 } from 'typeorm'
 import { Match } from './Match'
 import { IsDeleted } from '../enums/globalEnums'
+import { Sponsor } from './Sponsor'
 
 @Entity()
 export class Tournament {
   @PrimaryGeneratedColumn()
-  tournament_id: number
+  tournamentId: number
 
   @Column({
     type: 'nvarchar',
     length: '120'
   })
-  tournament_name: string
+  tournamentName: string
 
-  @Column({
-    type: 'datetime'
-  })
-  date_held: string
-
-  @OneToMany(() => Match, (match) => match.tournament, {
+  @OneToMany(() => Match, (matches) => matches.tournament, {
     nullable: false
   })
-  @JoinColumn({
-    name: 'match_id'
+  matches: Match[]
+
+  @ManyToMany(() => Sponsor, (sponsors) => sponsors.tournaments)
+  sponsors: Sponsor[]
+
+  @Column({
+    type: 'datetime',
+    default: () => 'GETDATE()',
+    nullable: false
   })
-  match: Match[]
+  createdAt: Date
 
   @Column({
     type: 'int',
@@ -39,10 +43,10 @@ export class Tournament {
     default: IsDeleted.EXISTS,
     nullable: false
   })
-  is_deleted: number
+  isDeleted: IsDeleted
 
   @DeleteDateColumn({
     type: 'datetime'
   })
-  delete_date: string
+  deletedAt: Date
 }

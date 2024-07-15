@@ -1,35 +1,25 @@
-import {
-  Column,
-  Entity,
-  JoinColumn,
-  PrimaryGeneratedColumn,
-  ManyToOne
-} from 'typeorm'
+import { Column, Entity, PrimaryGeneratedColumn, ManyToOne } from 'typeorm'
 import { User } from './User'
 import { Team } from './Team'
 
 @Entity()
-export class Team_member {
+export class TeamMember {
   @PrimaryGeneratedColumn()
-  team_mem_id: number
+  teamMemberId: number
 
-  @ManyToOne(() => User, (user) => user.team_member, {
+  @ManyToOne(() => User, (user) => user.teamMembers, {
     cascade: true,
     onDelete: 'CASCADE',
     orphanedRowAction: 'soft-delete',
     nullable: false
   })
-  @JoinColumn({ name: 'user_id' })
   user: User
 
-  @ManyToOne(() => Team, (team) => team.team_member, {
+  @ManyToOne(() => Team, (team) => team.teamMembers, {
     cascade: true,
     onDelete: 'CASCADE',
     orphanedRowAction: 'soft-delete',
     nullable: false
-  })
-  @JoinColumn({
-    name: 'team_id'
   })
   team: Team
 
@@ -39,7 +29,7 @@ export class Team_member {
     nullable: false,
     default: 'Guest'
   })
-  match_role: string
+  matchRole: string
 
   @Column({
     type: 'int',
