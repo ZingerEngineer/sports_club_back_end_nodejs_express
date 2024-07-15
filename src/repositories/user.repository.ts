@@ -1,123 +1,104 @@
 import { AppDataSource } from '../data-source'
-import { Team } from '../entities/Team'
-import { User, UserJobs, UserRoles } from '../entities/User'
+import { User } from '../entities/User'
 import { IsDeleted } from '../enums/globalEnums'
 import { checkIdValidity } from '../utils/checkIdValidity'
-import { validateDate } from '../utils/validateDate'
-import { validateName } from '../utils/validateName'
-import { validateTruthyNotEmptyString } from '../utils/validateTruthyNotEmptyString'
 import { coachRepository } from './coach.repository'
 import { teamRepository } from './team.repository'
 import { teamMemberRepository } from './teamMember.repository'
+import { UserRoles, UserJobs, UserGenders } from '../enums/user.enums'
+import { Session } from '../entities/Session'
 
 export const userRepository = AppDataSource.getRepository(User).extend({
-  async users(isDeleted?: number) {
-    let users: User[] = []
+  async findUsers(isDeleted?: IsDeleted) {
+    let users: User[]
     if (isDeleted in IsDeleted) {
       users = await userRepository.find({
         where: {
-          is_deleted: isDeleted
+          isDeleted: isDeleted
         },
         relations: {
-          team_member: true,
+          teamMembers: true,
           coach: true
         }
       })
     }
     users = await userRepository.find({
       relations: {
-        team_member: true,
+        teamMembers: true,
         coach: true
       }
     })
-    if (users.length === 0) return 0
+    if (users.length === 0) return null
     return users
   },
 
-  async findById(id: number | string, role: string) {
-    let foundUser: User
-    const checkRes = checkIdValidity(id)
-    if (checkRes === 0) return 0
-    const checkedId = checkRes.id
-    if (!validateTruthyNotEmptyString(role)) return 0
-    if (role === UserRoles.USER) {
-      foundUser = await userRepository.findOne({
-        where: {
-          user_id: checkedId,
-          role: UserRoles.USER
-        },
-        relations: {
-          team_member: true,
-          coach: true
-        }
-      })
-    }
-    if (role === UserRoles.EDITOR) {
-      foundUser = await userRepository.findOne({
-        where: {
-          user_id: checkedId,
-          role: UserRoles.EDITOR
-        },
-        relations: {
-          team_member: true,
-          coach: true
-        }
-      })
-    }
-    if (role === UserRoles.ADMIN) {
-      foundUser = await userRepository.findOne({
-        where: {
-          user_id: checkedId,
-          role: UserRoles.ADMIN
-        },
-        relations: {
-          team_member: true,
-          coach: true
-        }
-      })
-    }
-
-    if (!foundUser) return 0
-    return foundUser
+  async findById(id: number) {
+    let user: User
+    user = await userRepository.findOne({
+      where: {
+        userId: id
+      }
+    })
+    if (!user) return null
+    return user
   },
 
-  async findUsersByFirstName(first_name: string) {
+  async findUsersByFirstName(firstName: string) {
     let users: User[] = []
-    if (null === first_name || undefined === first_name) return []
+    if (null === firstName || undefined === firstName) return []
     users = await userRepository.find({
-      where: { first_name: first_name },
-      relations: { team_member: true, coach: true }
+      where: { firstName: firstName },
+      relations: { teamMembers: true, coach: true }
     })
     if (users.length === 0) return []
     return users
   },
+  async findUserByEmail(email: string) {
+    let user: User
+    user = await userRepository.findOne({
+      where: { email },
+      relations: { teamMembers: true, coach: true }
+    })
+    if (!user) return null
+    return user
+  },
 
-  async findUsersByLastName(last_name: string) {
+  async findUserByPhone(phone: string) {
+    let user: User
+    user = await userRepository.findOne({
+      where: { phone },
+      relations: { teamMembers: true, coach: true }
+    })
+    if (!user) return null
+    return user
+  },
+
+  async findUsersByLastName(lastName: string) {
     let users: User[] = []
-    if (null === last_name || undefined === last_name) return 0
+    if (null === lastName || undefined === lastName) return 0
     users = await userRepository.find({
-      where: { last_name: last_name },
-      relations: { team_member: true, coach: true }
+      where: { lastName: lastName },
+      relations: { teamMembers: true, coach: true }
     })
     if (users.length === 0) return 0
     return users
   },
-  async findUsersByFullName(first_name: string, last_name: string) {
+  async findUsersByFullName(firstName: string, lastName: string) {
     let users: User[] = []
     if (
-      null === first_name ||
-      undefined === first_name ||
-      null === last_name ||
-      undefined === last_name
+      null === firstName ||
+      undefined === firstName ||
+      null === lastName ||
+      undefined === lastName
     )
       return 0
     users = await userRepository.find({
       where: {
-        first_name: first_name,
-        last_name: last_name
+        firstName: firstName,
+        lastName: lastName
       },
       relations: {
-        team_member: true,
+        teamMembers: true,
         coach: true
       }
     })
@@ -130,17 +111,17 @@ export const userRepository = AppDataSource.getRepository(User).extend({
       if (checkRes === 0) return 0
       const checkedId = checkRes.id
       const user = await userRepository.find({
-        where: { user_id: checkedId }
+        where: { userId: checkedId }
       })
       if (!user) return 0
       return await userRepository
         .createQueryBuilder('user')
         .update(User)
         .set({
-          is_deleted: IsDeleted.DELETED,
-          delete_date: () => 'GETDATE()'
+          isDeleted: IsDeleted.DELETED,
+          deletedAt: () => 'GETDATE()'
         })
-        .where('user.user_id = :checkedId', { checkedId })
+        .where('user.userId = :checkedId', { checkedId })
         .execute()
     } catch (error) {
       console.log(error)
@@ -153,128 +134,116 @@ export const userRepository = AppDataSource.getRepository(User).extend({
       if (checkRes === 0) return 0
       const checkedId = checkRes.id
       const user = await userRepository.find({
-        where: { user_id: checkedId }
+        where: { userId: checkedId }
       })
       if (!user) return 0
       return await userRepository
         .createQueryBuilder('user')
         .delete()
         .from(User)
-        .where('user.user_id = :checkedId', { checkedId })
+        .where('user.userId = :checkedId', { checkedId })
         .execute()
     } catch (error) {
       console.log(error)
     }
   },
+  async updateUserSessionId(id: number, session: Session) {
+    try {
+      const user = await userRepository.find({
+        where: { userId: id }
+      })
+      if (!user) return null
+      return await userRepository
+        .createQueryBuilder('user')
+        .update()
+        .set({ session: session })
+        .where('user.userId = :id', { id })
+        .execute()
+    } catch (error) {
+      console.log(error)
+      return null
+    }
+  },
   async createUser(
-    first_name: string,
-    last_name: string,
-    role: string,
+    firstName: string,
+    lastName: string,
+    gender: UserGenders,
+    email: string,
+    phone: string,
+    password: string,
+    role: UserRoles,
     dob: string,
-    job?: string,
-    salary?: string,
+    job?: UserJobs,
+    salary?: number,
     teamToCoach?: string,
     teamToJoin?: string
   ) {
-    let firstName = ''
-    let lastName = ''
-    let roleToUse = ''
-    let dobToUse = ''
-    let jobToUse = ''
-    let ageToUse = 0
-    if (!validateTruthyNotEmptyString(firstName)) return 0
-    if (first_name !== '') {
-      if (!validateName(first_name)) return 0
-      firstName = first_name
-    }
-
-    if (!validateTruthyNotEmptyString(lastName)) return 0
-    if (last_name !== '') {
-      if (!validateName(last_name)) return 0
-      lastName = last_name
-    }
-    if (!validateTruthyNotEmptyString(role)) return 0
-    if (role !== '') {
-      if (!(role in UserRoles)) return 0
-      roleToUse = role
-    }
-    if (!validateTruthyNotEmptyString(dob)) return 0
-    if (dob !== '') {
-      if (!validateDate(dob)) return 0
-      dobToUse = dob
-      ageToUse = new Date().getFullYear() - parseInt(dob.split('-')[0])
-    }
-    if (!validateTruthyNotEmptyString(job)) return 0
-    if (job !== '') {
-      if (!(job in UserJobs)) return 0
-      if (!validateTruthyNotEmptyString(salary) || !salary || salary === '')
-        return 0
-      let salaryToUse = parseFloat(salary)
+    const ageToUse = new Date().getFullYear() - parseInt(dob.split('-')[0])
+    if (salary) {
       if (job === UserJobs.COACH) {
-        if (
-          !teamToCoach ||
-          !validateTruthyNotEmptyString(teamToCoach) ||
-          teamToCoach === ''
-        )
-          return 0
         let checkedTeamToCoach = await teamRepository.findTeamByName(
           teamToCoach
         )
-        if (checkedTeamToCoach === 0) return 0
+        if (!checkedTeamToCoach) return null
 
         const newUser = userRepository.create({
-          first_name: firstName,
-          last_name: lastName,
-          role: roleToUse,
-          dob: dobToUse,
+          firstName: firstName,
+          lastName: lastName,
+          gender: gender,
+          email: email,
+          phone: phone,
+          password: password,
+          role: role,
+          dob: dob,
           age: ageToUse,
-          job: jobToUse
+          job: job
         })
 
-        await userRepository.save(newUser)
+        const savedUser = await userRepository.save(newUser)
 
         const newCoach = coachRepository.create({
-          user: newUser,
-          salary: salaryToUse,
-          team: checkedTeamToCoach as Team
+          user: savedUser,
+          team: checkedTeamToCoach,
+          salary: salary
         })
         await coachRepository.save(newCoach)
       }
       if (job === UserJobs.TEAMMEMBER) {
-        if (
-          !teamToJoin ||
-          !validateTruthyNotEmptyString(teamToJoin) ||
-          teamToJoin === ''
-        )
-          return 0
         let checkedTeamToJoin = await teamRepository.findTeamByName(teamToJoin)
-        if (checkedTeamToJoin === 0) return 0
+        if (!checkedTeamToJoin) return null
 
         const newUser = userRepository.create({
-          first_name: firstName,
-          last_name: lastName,
-          role: roleToUse,
-          dob: dobToUse,
+          firstName: firstName,
+          lastName: lastName,
+          gender: gender,
+          email: email,
+          phone: phone,
+          password: password,
+          role: role,
+          dob: dob,
           age: ageToUse,
-          job: jobToUse
+          job: job
         })
-        await userRepository.save(newUser)
+        const savedUser = await userRepository.save(newUser)
         const newTeamMember = teamMemberRepository.create({
-          user: newUser,
-          salary: salaryToUse,
-          team: checkedTeamToJoin as Team
+          user: savedUser,
+          salary: salary,
+          team: checkedTeamToJoin
         })
         await teamMemberRepository.save(newTeamMember)
       }
     }
-    jobToUse = UserJobs.GUEST
     const newUser = userRepository.create({
-      first_name: firstName,
-      last_name: lastName,
-      role: roleToUse,
-      dob: dobToUse,
+      firstName: firstName,
+      lastName: lastName,
+      gender: gender,
+      email: email,
+      phone: phone,
+      password: password,
+      role: role,
+      dob: dob,
       age: ageToUse,
-      job: jobToUse
+      job: UserJobs.GUEST
     })
     return await userRepository.save(newUser)
   }
