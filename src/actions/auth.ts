@@ -1,15 +1,45 @@
 import { User } from '../entities/User'
 import { userRepository } from '../repositories/user.repository'
 import bcrypt from 'bcrypt'
-import jsonwebtoken from 'jsonwebtoken'
 import dotenv from 'dotenv'
-import { UserGenders, UserJobs, UserRoles } from '../enums/user.enums'
+import { SignJWT, jwtDecrypt, JWTPayload, EncryptJWT } from 'jose'
+import {
+  UserGenders,
+  UserJobs,
+  UserLogStatus,
+  UserRoles
+} from '../enums/user.enums'
 import { sessionRepository } from '../repositories/session.repository'
-import crypto from 'crypto'
 
 dotenv.config()
 
 const tokenSecret = process.env.TOKEN_SECRET
+const sessionSecret = new TextEncoder().encode(process.env.SESSION_SECRET)
+
+const encryptSessionData = async (sessionData: string): Promise<string> => {
+  const encryptedSessionData = await new EncryptJWT({ data: sessionData })
+    .setProtectedHeader({ alg: 'HS256', enc: 'A128CBC-HS256' })
+    .setIssuedAt()
+    .setExpirationTime('1d')
+    .encrypt(sessionSecret)
+  return encryptedSessionData
+}
+
+const signTokenizedSessionData = async (
+  tokenSessionData: string
+): Promise<string> => {
+  const signedTokenizedSession = new SignJWT({ data: tokenSessionData }).sign(
+    new TextEncoder().encode(tokenSecret)
+  )
+
+  return signedTokenizedSession
+}
+
+// Helper function to decrypt the session data
+const decryptSessionData = async (token: string): Promise<JWTPayload> => {
+  const { payload } = await jwtDecrypt(token, sessionSecret)
+  return payload
+}
 
 const login = async (email: string, phone: string, password: string) => {
   let dbUser: User
@@ -25,10 +55,21 @@ const login = async (email: string, phone: string, password: string) => {
   const compareCheck = await bcrypt.compare(dbUser.password, password)
   if (!compareCheck) return null
 
-  const signedUserData = jsonwebtoken.sign({ dbUser }, tokenSecret)
+  const encryptedSessionData = await encryptSessionData(
+    JSON.stringify({ status: UserLogStatus.LOGGEDIN })
+  )
+  const signedEncryptedSessionData = await signTokenizedSessionData(
+    encryptedSessionData
+  )
+  const newSession = await sessionRepository.createSession(
+    dbUser,
+    24 * 60 * 60 * 1000,
+    signedEncryptedSessionData
+  )
 
   return {
-    signedUserData
+    user: dbUser,
+    session: newSession
   }
 }
 
@@ -40,9 +81,7 @@ const signUp = async (
   password: string,
   gender: UserGenders,
   dob: string,
-  job: UserJobs,
-  sessionExpirationTimeStamp: number,
-  data?: string
+  job: UserJobs
 ) => {
   try {
     let dbUser: User
@@ -63,18 +102,21 @@ const signUp = async (
       dob,
       job
     )
-    const newSessionId = crypto.randomBytes(60).toString('hex')
-    const newSessionDataObject = {
-      sessionId: newSessionId,
-      user: newUser,
-      expiresAt: sessionExpirationTimeStamp
-    }
-    if (data) newSessionDataObject['data'] = data
-    const newSessionEntry = sessionRepository.create(newSessionDataObject)
-    await sessionRepository.save(newSessionEntry)
+    const encryptedSessionData = await encryptSessionData(
+      JSON.stringify({ status: UserLogStatus.LOGGEDIN })
+    )
+    const signedEncryptedSessionData = await signTokenizedSessionData(
+      encryptedSessionData
+    )
+    const newSession = await sessionRepository.createSession(
+      newUser,
+      24 * 60 * 60 * 1000,
+      signedEncryptedSessionData
+    )
+
     return {
       user: newUser,
-      sessionId: newSessionId
+      session: newSession
     }
   } catch (error) {
     console.log(error)
@@ -82,4 +124,14 @@ const signUp = async (
   }
 }
 
-export { signUp, login }
+const logOut = async (id: number) => {
+  const user = await userRepository.findUserById(id)
+  if (!user) return null
+  await sessionRepository.delete({
+    user: user
+  })
+}
+
+const signInWithGoogle = async () => {}
+
+export { signUp, login, logOut }
