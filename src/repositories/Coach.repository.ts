@@ -1,4 +1,4 @@
-import { AppDataSource } from '../data-source'
+import { AppDataSource } from '../services/data-source'
 import { Coach } from '../entities/Coach'
 import { checkIdValidity } from '../utils/checkIdValidity'
 

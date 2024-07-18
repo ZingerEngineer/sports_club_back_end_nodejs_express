@@ -1,4 +1,4 @@
-import { AppDataSource } from '../data-source'
+import { AppDataSource } from '../services/data-source'
 import { Sponsor } from '../entities/Sponsor'
 import { IsDeleted } from '../enums/globalEnums'
 import { checkIdValidity } from '../utils/checkIdValidity'

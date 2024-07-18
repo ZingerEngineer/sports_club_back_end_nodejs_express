@@ -1,4 +1,4 @@
-import { AppDataSource } from '../data-source'
+import { AppDataSource } from '../services/data-source'
 import { User } from '../entities/User'
 import { IsDeleted } from '../enums/globalEnums'
 import { checkIdValidity } from '../utils/checkIdValidity'
@@ -32,7 +32,7 @@ export const userRepository = AppDataSource.getRepository(User).extend({
     return users
   },
 
-  async findById(id: number) {
+  async findUserById(id: number) {
     let user: User
     user = await userRepository.findOne({
       where: {

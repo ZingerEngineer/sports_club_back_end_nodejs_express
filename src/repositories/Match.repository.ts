@@ -1,4 +1,4 @@
-import { AppDataSource } from '../data-source'
+import { AppDataSource } from '../services/data-source'
 import { Match } from '../entities/Match'
 import { IsDeleted } from '../enums/globalEnums'
 import { checkIdValidity } from '../utils/checkIdValidity'
