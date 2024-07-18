@@ -12,7 +12,13 @@ enum UserJobs {
 
 enum UserGenders {
   MALE = 'Male',
-  FEMALE = 'Female',
-  NOTSPECIFIED = 'Not specified'
+  FEMALE = 'Female'
 }
-export { UserRoles, UserJobs, UserGenders }
+
+enum UserLogStatus {
+  LOGGEDIN = 'loggedIn',
+  LOGGEDOUT = 'loggedOut',
+  BANNED = 'banned'
+}
+
+export { UserRoles, UserJobs, UserGenders, UserLogStatus }
