@@ -1,6 +1,6 @@
 import express from 'express'
 import dotenv from 'dotenv'
-import { AppDataSource } from './data-source'
+import { AppDataSource } from './services/data-source'
 import globalRouter from './routes/globalRouter'
 import cookieParser from 'cookie-parser'
 
