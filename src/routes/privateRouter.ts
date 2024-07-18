@@ -1,8 +1,8 @@
 import express from 'express'
 import { test } from '../controllers/test.controller'
-import authorization from '../middlewares/authorization'
+import { authorizationMiddleWare } from '../middlewares/authorization.middleware'
 const privateRouter = express.Router()
 
-privateRouter.use('/test-private', authorization, test)
+privateRouter.get('/test-private', authorizationMiddleWare, test)
 
 export default privateRouter
