@@ -21,4 +21,15 @@ enum UserLogStatus {
   BANNED = 'banned'
 }
 
-export { UserRoles, UserJobs, UserGenders, UserLogStatus }
+enum UserEmailVerificationState {
+  VERIFIED = 1,
+  UNVERIFIED = 0
+}
+
+export {
+  UserRoles,
+  UserJobs,
+  UserGenders,
+  UserLogStatus,
+  UserEmailVerificationState
+}
