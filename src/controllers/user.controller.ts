@@ -1,11 +1,12 @@
 import { Request, Response } from 'express'
 import { login, signUp, logOut } from '../actions/auth'
 
-type loginController = (req: Request, res: Response) => Promise<void>
-type logOutController = (req: Request, res: Response) => Promise<void>
-type signUpController = (req: Request, res: Response) => Promise<void>
+type TLoginController = (req: Request, res: Response) => Promise<void>
+type TLogOutController = (req: Request, res: Response) => Promise<void>
+type TSignUpController = (req: Request, res: Response) => Promise<void>
+type TVerifyEmailController = (req: Request, res: Response) => Promise<void>
 
-const loginController: loginController = async (req, res) => {
+const loginController: TLoginController = async (req, res) => {
   try {
     let phone: string = req.body.phone
     let email: string = req.body.email
@@ -33,7 +34,7 @@ const loginController: loginController = async (req, res) => {
   }
 }
 
-const signUpController: signUpController = async (
+const signUpController: TSignUpController = async (
   req: Request,
   res: Response
 ) => {
@@ -68,7 +69,7 @@ const signUpController: signUpController = async (
   }
 }
 
-const logOutController: logOutController = async (req, res) => {
+const logOutController: TLogOutController = async (req, res) => {
   try {
     const userId = req.body.id
     if (!userId) res.status(400).json({ message: 'Error happened.' })
@@ -76,6 +77,16 @@ const logOutController: logOutController = async (req, res) => {
   } catch (error) {
     console.log(error)
     return null
+  }
+}
+
+const verifyEmailController: TVerifyEmailController = async (req, res) => {
+  try {
+    const { id, email } = req.body
+    const { token } = req.headers
+  } catch (error) {
+    console.log(error)
+    res.status(400).json({ message: 'Verification failed.' })
   }
 }
 
