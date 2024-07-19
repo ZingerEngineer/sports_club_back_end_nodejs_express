@@ -10,8 +10,14 @@ import {
 import { TeamMember } from './TeamMember'
 import { Coach } from './Coach'
 import { IsDeleted } from '../enums/globalEnums'
-import { UserGenders, UserJobs, UserRoles } from '../enums/user.enums'
+import {
+  UserGenders,
+  UserJobs,
+  UserRoles,
+  UserEmailVerificationState
+} from '../enums/user.enums'
 import { Session } from './Session'
+import { Token } from './Token'
 
 @Entity()
 export class User {
@@ -37,6 +43,17 @@ export class User {
   })
   session: Session
 
+  @OneToMany(() => Token, (tokens) => tokens.user, {
+    cascade: true,
+    onDelete: 'CASCADE',
+    orphanedRowAction: 'soft-delete',
+    nullable: false
+  })
+  @JoinColumn({
+    name: 'tokenId'
+  })
+  tokens: Token[]
+
   @Column({
     type: 'varchar',
     length: 15,
@@ -44,6 +61,14 @@ export class User {
     nullable: false
   })
   phone: string
+
+  @Column({
+    type: 'int',
+    width: 1,
+    default: UserEmailVerificationState.UNVERIFIED,
+    nullable: false
+  })
+  emailVerified: UserEmailVerificationState
 
   @Column({
     type: 'varchar',
