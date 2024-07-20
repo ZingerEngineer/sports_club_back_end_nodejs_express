@@ -3,7 +3,7 @@ import { userRepository } from '../repositories/user.repository'
 import bcrypt from 'bcrypt'
 import dotenv from 'dotenv'
 import { sign, verify, decode } from 'jsonwebtoken'
-import { SignJWT, jwtDecrypt, JWTPayload, EncryptJWT } from 'jose'
+import { SignJWT, jwtDecrypt, JWTPayload, EncryptJWT, jwtVerify } from 'jose'
 import {
   UserGenders,
   UserJobs,
@@ -42,7 +42,8 @@ const signTokenizedSessionData = async (
 
 // Helper function to decrypt the session data
 const decryptSessionData = async (token: string): Promise<JWTPayload> => {
-  const { payload } = await jwtDecrypt(token, sessionSecret)
+  const { payload } = await jwtVerify(token, sessionSecret)
+  if (!payload) return null
   return payload
 }
 
