@@ -2,6 +2,7 @@ import { User } from '../entities/User'
 import { userRepository } from '../repositories/user.repository'
 import bcrypt from 'bcrypt'
 import dotenv from 'dotenv'
+import { sign, verify, decode } from 'jsonwebtoken'
 import { SignJWT, jwtDecrypt, JWTPayload, EncryptJWT } from 'jose'
 import {
   UserGenders,
@@ -10,6 +11,10 @@ import {
   UserRoles
 } from '../enums/user.enums'
 import { sessionRepository } from '../repositories/session.repository'
+import { sendEmail } from '../services/mailerConfig'
+import { tokenRepository } from '../repositories/token.repository'
+import { TokenTypes } from '../enums/token.enums'
+import { Token } from '../entities/Token'
 
 dotenv.config()
 
@@ -39,6 +44,50 @@ const signTokenizedSessionData = async (
 const decryptSessionData = async (token: string): Promise<JWTPayload> => {
   const { payload } = await jwtDecrypt(token, sessionSecret)
   return payload
+}
+
+const sendVerificationLink = async (email: string) => {
+  try {
+    const user = await userRepository.findUserByEmail(email)
+    if (!user) return null
+    const userVerificationToken = user.tokens.filter(
+      (token) => token.tokenType === TokenTypes.VERIFYEMAIL
+    )
+    if (!userVerificationToken) return null
+    const verifyUrl = `http://localhost/v1/verify/id:${userVerificationToken}`
+    await sendEmail(
+      email,
+      'Sports club email verification',
+      `The following link is a one time link and is available for 3 minutes, carefully use it to validate your email: ${verifyUrl}.`
+    )
+  } catch (error) {
+    console.log(error)
+    return null
+  }
+}
+
+export const verifyEmail = async (userVerificationToken: string) => {
+  try {
+    let userId = ''
+    let userEmail = ''
+    if (!userVerificationToken) return null
+    let tokenVerificationResults = verify(userVerificationToken, tokenSecret)
+    if (!tokenVerificationResults) return null
+
+    if (typeof tokenVerificationResults !== 'string') {
+      userId = tokenVerificationResults.userId
+      userEmail = tokenVerificationResults.userEmail
+    }
+    await userRepository.makeUserEmailVertified(userId, userEmail)
+    const user = await userRepository.findUserByEmail(userEmail)
+    await tokenRepository.delete({
+      user,
+      tokenBody: userVerificationToken
+    })
+  } catch (error) {
+    console.log(error)
+    return null
+  }
 }
 
 const login = async (email: string, phone: string, password: string) => {
@@ -102,6 +151,25 @@ const signUp = async (
       dob,
       job
     )
+
+    const verificationToken = sign(
+      { userId: newUser.userId, userEmail: newUser.email },
+      tokenSecret,
+      {
+        expiresIn: '3m'
+      }
+    )
+
+    await tokenRepository.createToken(
+      newUser,
+      '3m',
+      verificationToken,
+      TokenTypes.VERIFYEMAIL,
+      1
+    )
+
+    await sendVerificationLink(newUser.email)
+
     const encryptedSessionData = await encryptSessionData(
       JSON.stringify({ status: UserLogStatus.LOGGEDIN })
     )

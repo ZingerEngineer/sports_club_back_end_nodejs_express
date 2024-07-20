@@ -1,5 +1,6 @@
 import { Request, Response } from 'express'
 import { login, signUp, logOut } from '../actions/auth'
+import { verifyEmail } from '../actions/auth'
 
 type TLoginController = (req: Request, res: Response) => Promise<void>
 type TLogOutController = (req: Request, res: Response) => Promise<void>
@@ -82,12 +83,19 @@ const logOutController: TLogOutController = async (req, res) => {
 
 const verifyEmailController: TVerifyEmailController = async (req, res) => {
   try {
-    const { id, email } = req.body
     const { token } = req.headers
+    if (token) res.status(400).json({ message: 'Verification failed.' })
+
+    if (typeof token === 'string') await verifyEmail(token)
   } catch (error) {
     console.log(error)
     res.status(400).json({ message: 'Verification failed.' })
   }
 }
 
-export { loginController, signUpController, logOutController }
+export {
+  loginController,
+  signUpController,
+  logOutController,
+  verifyEmailController
+}
