@@ -5,7 +5,12 @@ import { checkIdValidity } from '../utils/checkIdValidity'
 import { coachRepository } from './coach.repository'
 import { teamRepository } from './team.repository'
 import { teamMemberRepository } from './teamMember.repository'
-import { UserRoles, UserJobs, UserGenders } from '../enums/user.enums'
+import {
+  UserRoles,
+  UserJobs,
+  UserGenders,
+  UserEmailVerificationState
+} from '../enums/user.enums'
 import { Session } from '../entities/Session'
 
 export const userRepository = AppDataSource.getRepository(User).extend({
@@ -246,5 +251,16 @@ export const userRepository = AppDataSource.getRepository(User).extend({
       job: UserJobs.GUEST
     })
     return await userRepository.save(newUser)
+  },
+  async makeUserEmailVertified(userId: string, userEmail: string) {
+    userRepository
+      .createQueryBuilder('user')
+      .update(User)
+      .set({
+        emailVerified: UserEmailVerificationState.VERIFIED
+      })
+      .where('user.userEmail = :userEmail', { userEmail })
+      .andWhere('user.userId = :userId', { userId })
+      .execute()
   }
 })
