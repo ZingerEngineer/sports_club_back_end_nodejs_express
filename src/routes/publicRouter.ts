@@ -2,7 +2,8 @@ import express from 'express'
 import { test } from '../controllers/test.controller'
 import {
   loginController,
-  signUpController
+  signUpController,
+  verifyEmailController
 } from '../controllers/user.controller'
 import { validationMiddleWare } from '../middlewares/validation.middleware'
 import {
@@ -11,6 +12,7 @@ import {
 } from '../validationSchemas/user'
 
 import multer from 'multer'
+import { authorization } from '../middlewares/authorization.middleware'
 const upload = multer({ dest: 'uploads/' })
 
 const publicRouter = express.Router()
@@ -27,5 +29,7 @@ publicRouter.post(
   validationMiddleWare(userLoginPayLoadSchema),
   loginController
 )
+
+publicRouter.post('/verify/email', authorization, verifyEmailController)
 
 export default publicRouter
