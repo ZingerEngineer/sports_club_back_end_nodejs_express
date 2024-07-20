@@ -47,5 +47,5 @@ export class Token {
     default: 1,
     nullable: false
   })
-  tokenUseTimes: string
+  tokenUseTimes: number
 }
