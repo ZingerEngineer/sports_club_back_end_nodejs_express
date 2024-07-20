@@ -1,5 +1,5 @@
 export enum TeamType {
-  CANDIDATES = 'candidates',
-  AMATURES = 'amatures',
-  INTERNATIONAL = 'international'
+  CANDIDATES = 0,
+  AMATURES = 1,
+  INTERNATIONAL = 2
 }

@@ -1,24 +1,23 @@
 enum UserRoles {
-  ADMIN = 'admin',
-  EDITOR = 'editor',
-  USER = 'user'
+  ADMIN = 0,
+  USER = 1
 }
 
 enum UserJobs {
-  GUEST = 'guest',
-  TEAMMEMBER = 'team_member',
-  COACH = 'coach'
+  GUEST = 0,
+  TEAMMEMBER = 1,
+  COACH = 2
 }
 
 enum UserGenders {
-  MALE = 'Male',
-  FEMALE = 'Female'
+  MALE = 0,
+  FEMALE = 1
 }
 
 enum UserLogStatus {
-  LOGGEDIN = 'loggedIn',
-  LOGGEDOUT = 'loggedOut',
-  BANNED = 'banned'
+  LOGGEDIN = 0,
+  LOGGEDOUT = 1,
+  BANNED = 2
 }
 
 enum UserEmailVerificationState {

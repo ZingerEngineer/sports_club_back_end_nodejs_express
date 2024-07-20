@@ -1,4 +1,4 @@
 export enum MatchType {
-  SCRIMMAGE = 'scrimmage',
-  MATCHMAKING = 'match_making'
+  SCRIMMAGE = 0,
+  MATCHMAKING = 1
 }
