@@ -13,32 +13,32 @@ export const sponsorRepository = AppDataSource.getRepository(Sponsor).extend({
         .innerJoin('sponsor.team', 'team')
         .innerJoin('sponsor.tournament', 'tournament')
         .select([
-          'sponsor.sponsor_id',
-          'sponsor.brand_name',
-          'sponsor.is_deleted',
-          'team.team_id',
-          'team.team_name',
-          'tournament.tournament_id',
-          'tournament.tournament_name'
+          'sponsor.sponsorId',
+          'sponsor.name',
+          'sponsor.isDeleted',
+          'team.teamId',
+          'team.teamName',
+          'tournament.tournamentId',
+          'tournament.tournamentName'
         ])
 
       if (isDeleted !== IsDeleted.NULL) {
-        query.where('sponsor.is_deleted = :isDeleted', {
+        query.where('sponsor.isDeleted = :isDeleted', {
           isDeleted: isDeleted
         })
       }
       const sponsors = await query.getMany()
-      if (sponsors.length === 0) return 0
+      if (sponsors.length === 0) return null
       return sponsors
     } catch (error) {
       console.log(error)
     }
   },
 
-  async findSponsorById(id: string | number) {
+  async findSponsorById(id: number) {
     try {
       const checkRes = checkIdValidity(id)
-      if (checkRes === 0) return 0
+      if (checkRes === 0) return null
       const sponsId = checkRes.id
 
       const sponsor = await sponsorRepository
@@ -46,17 +46,17 @@ export const sponsorRepository = AppDataSource.getRepository(Sponsor).extend({
         .innerJoin('sponsor.team', 'team')
         .innerJoin('sponsor.tournament', 'tournament')
         .select([
-          'sponsor.sponsor_id',
-          'sponsor.brand_name',
-          'sponsor.is_deleted',
-          'team.team_id',
-          'team.team_name',
-          'tournament.tournament_id',
-          'tournament.tournament_name'
+          'sponsor.sponsorId',
+          'sponsor.name',
+          'sponsor.isDeleted',
+          'team.teamId',
+          'team.teamName',
+          'tournament.tournamentId',
+          'tournament.tournamentName'
         ])
-        .where('sponsor.sponsor_id = :sponsId', { sponsId })
+        .where('sponsor.sponsorId = :sponsId', { sponsId })
         .getOne()
-      if (!sponsor) return 0
+      if (!sponsor) return null
       return sponsor
     } catch (error) {
       console.log(error)
@@ -69,98 +69,84 @@ export const sponsorRepository = AppDataSource.getRepository(Sponsor).extend({
         .innerJoin('sponsor.team', 'team')
         .innerJoin('sponsor.tournament', 'tournament')
         .select([
-          'sponsor.sponsor_id',
-          'sponsor.brand_name',
-          'sponsor.is_deleted',
-          'team.team_id',
-          'team.team_name',
-          'tournament.tournament_id',
-          'tournament.tournament_name'
+          'sponsor.sponsorId',
+          'sponsor.name',
+          'sponsor.isDeleted',
+          'team.teamId',
+          'team.teamName',
+          'tournament.tournamentId',
+          'tournament.tournamentName'
         ])
-        .where('sponsor.brand_name = :brandName', { brandName })
+        .where('sponsor.name = :brandName', { brandName })
         .getOne()
 
-      if (!sponsor) return 0
+      if (!sponsor) return null
       return sponsor
     } catch (error) {
       console.log(error)
     }
   },
-  async softDeleteSponsorById(id: string | number) {
+  async softDeleteSponsorById(id: number) {
     try {
-      const checkRes = checkIdValidity(id)
-      if (checkRes === 0) return 0
-      const sponsId = checkRes.id
-
-      const sponsorAvailableCheck = await sponsorRepository.findSponsorById(
-        sponsId
-      )
-      if (sponsorAvailableCheck === 0) return 0
+      const sponsor = await sponsorRepository.findSponsorById(id)
+      if (!sponsor) return null
       return await sponsorRepository
         .createQueryBuilder('sponsor')
         .update(Sponsor)
         .set({
-          is_deleted: IsDeleted.DELETED,
-          delete_date: () => 'GETDATE()'
+          isDeleted: IsDeleted.DELETED,
+          deletedAt: () => 'GETDATE()'
         })
-        .where('sponsor.sponsor_id = :sponsId', { sponsId })
+        .where('sponsor.sponsorId = :sponsId', { id })
         .execute()
     } catch (error) {
       console.log(error)
+      return null
     }
   },
-  async softDeleteSponsorByName(brand_name: string) {
+  async softDeleteSponsorByName(name: string) {
     try {
-      const sponsorAvailableCheck = await sponsorRepository.findSponsorByName(
-        brand_name
-      )
-      if (sponsorAvailableCheck === 0) return 0
+      const sponsor = await sponsorRepository.findSponsorByName(name)
+      if (!sponsor) return null
       return await sponsorRepository
         .createQueryBuilder('sponsor')
         .update(Sponsor)
         .set({
-          is_deleted: IsDeleted.DELETED,
-          delete_date: () => 'GETDATE()'
+          isDeleted: IsDeleted.DELETED,
+          deletedAt: () => 'GETDATE()'
         })
-        .where('sponsor.brand_name = :brandName', { brandName: brand_name })
+        .where('sponsor.name = :brandName', { brandName: name })
+        .execute()
+    } catch (error) {
+      console.log(error)
+      return null
+    }
+  },
+
+  async hardDeleteSponsorById(id: number) {
+    try {
+      const sponsor = await sponsorRepository.findSponsorById(id)
+      if (!sponsor) return null
+      return await sponsorRepository
+        .createQueryBuilder('sponsor')
+        .delete()
+        .from(Sponsor)
+        .where('sponsor.sponsorId = :sponsId', { id })
         .execute()
     } catch (error) {
       console.log(error)
     }
   },
 
-  async hardDeleteSponsorById(id: string | number) {
+  async hardDeleteSponsorByName(name: string) {
     try {
-      const checkRes = checkIdValidity(id)
-      if (checkRes === 0) return 0
-      const sponsId = checkRes.id
-
-      const sponsorAvailableCheck = await sponsorRepository.findSponsorById(
-        sponsId
-      )
-      if (sponsorAvailableCheck === 0) return 0
+      const sponsor = await sponsorRepository.findSponsorByName(name)
+      if (!sponsor) return null
       return await sponsorRepository
         .createQueryBuilder('sponsor')
         .delete()
         .from(Sponsor)
-        .where('sponsor.sponsor_id = :sponsId', { sponsId })
-        .execute()
-    } catch (error) {
-      console.log(error)
-    }
-  },
-
-  async hardDeleteSponsorByName(brand_name: string) {
-    try {
-      const sponsorAvailableCheck = await sponsorRepository.findSponsorByName(
-        brand_name
-      )
-      if (sponsorAvailableCheck === 0) return 0
-      return await sponsorRepository
-        .createQueryBuilder('sponsor')
-        .delete()
-        .from(Sponsor)
-        .where('sponsor.brand_name = :brandName', { brandName: brand_name })
+        .where('sponsor.name = :brandName', { brandName: name })
         .execute()
     } catch (error) {
       console.log(error)
@@ -168,41 +154,41 @@ export const sponsorRepository = AppDataSource.getRepository(Sponsor).extend({
   },
 
   async createNewSponsor(
-    brand_name: string,
-    team_name?: string,
-    tournament_name?: string
+    name: string,
+    teamName?: string,
+    tournamentName?: string
   ) {
     const newSponsor = sponsorRepository.create()
     sponsorRepository.createQueryBuilder('sponsor').update(Sponsor).set({
-      brand_name: brand_name
+      name: name
     })
 
-    if (team_name || team_name !== '') {
+    if (teamName || teamName !== '') {
       try {
-        const team = await teamRepository.findTeamByName(team_name)
-        if (team === 0) return 0
-        const teamId = team.team_id
+        const team = await teamRepository.findTeamByName(teamName)
+        if (!team) return null
+        const teamId = team.teamId
 
         await sponsorRepository
           .createQueryBuilder('sponsor')
           .relation(Sponsor, 'sponsored_teams')
-          .of(newSponsor.sponsor_id)
+          .of(newSponsor.sponsorId)
           .add(teamId)
       } catch (error) {
         console.log()
       }
     }
-    if (tournament_name || tournament_name !== '') {
+    if (tournamentName || tournamentName !== '') {
       try {
         const tournament = await tournamentRepository.findTournamentByName(
-          tournament_name
+          tournamentName
         )
-        if (tournament === 0) return 0
-        const tournamentId = tournament.tournament_id
+        if (!tournament) return null
+        const tournamentId = tournament.tournamentId
         await sponsorRepository
           .createQueryBuilder('sponsor')
           .relation(Sponsor, 'sponsored_tournaments')
-          .of(newSponsor.sponsor_id)
+          .of(newSponsor.sponsorId)
           .add(tournamentId)
       } catch (error) {
         console.log(error)
