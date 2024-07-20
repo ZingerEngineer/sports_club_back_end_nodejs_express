@@ -12,17 +12,22 @@ export const tokenRepository = AppDataSource.getRepository(Token).extend({
     tokenType: TokenTypes,
     tokenUseTimes?: number
   ) {
-    if (!tokenUseTimes) tokenUseTimes = 1
-    const tokenId = crypto.randomBytes(60).toString('hex')
-    const tokenObject = {
-      tokenId: tokenId,
-      user: user,
-      expiresIn,
-      tokenBody,
-      tokenType,
-      tokenUseTimes
+    try {
+      if (!tokenUseTimes) tokenUseTimes = 1
+      const tokenId = crypto.randomBytes(60).toString('hex')
+      const tokenObject = {
+        tokenId: tokenId,
+        user: user,
+        expiresIn,
+        tokenBody,
+        tokenType,
+        tokenUseTimes
+      }
+      const newToken = tokenRepository.create(tokenObject)
+      return await tokenRepository.save(newToken)
+    } catch (error) {
+      console.log(error)
+      return null
     }
-    const newToken = tokenRepository.create(tokenObject)
-    return await tokenRepository.save(newToken)
   }
 })

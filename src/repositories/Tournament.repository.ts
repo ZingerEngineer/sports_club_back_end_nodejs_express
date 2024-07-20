@@ -7,212 +7,141 @@ import { teamRepository } from './team.repository'
 export const tournamentRepository = AppDataSource.getRepository(
   Tournament
 ).extend({
-  async findTournaments(isDeleted: number | null) {
+  async findTournaments() {
     try {
-      const query = tournamentRepository
+      return await tournamentRepository
         .createQueryBuilder('tournament')
         .innerJoin('tournament.match', 'match')
         .innerJoin('tournament.sponsor', 'sponsor')
         .select([
-          'tournament.tournament_id',
-          'tournament.tournament_name',
-          'tournament.date_held',
-          'tournament.is_deleted',
-          'match.match_id',
-          'sponsor.sponsor_id'
+          'tournament.tournamentId',
+          'tournament.tournamentName',
+          'tournament.createdAt',
+          'tournament.isDeleted',
+          'match.matchId',
+          'sponsor.sponsorId'
         ])
-
-      if (isDeleted !== IsDeleted.NULL) {
-        query.where('tournament.is_deleted = :isDeleted', {
-          isDeleted: isDeleted
-        })
-      }
-      const tournaments = await query.getMany()
-      if (tournaments.length === 0) return 0
-      return tournaments
+        .getMany()
     } catch (error) {
       console.log(error)
+      return null
     }
   },
 
-  async findTournamentById(id: string | number) {
+  async findTournamentById(id: number) {
     try {
-      const checkRes = checkIdValidity(id)
-      if (checkRes === 0) return 0
-      const tournId = checkRes.id
-
-      const tournament = await tournamentRepository
+      return await tournamentRepository
         .createQueryBuilder('tournament')
         .innerJoin('tournament.match', 'match')
         .innerJoin('tournament.sponsor', 'sponsor')
         .select([
-          'tournament.tournament_id',
-          'tournament.tournament_name',
-          'tournament.date_held',
-          'tournament.is_deleted',
-          'match.match_id',
-          'sponsor.sponsor_id'
+          'tournament.tournamentId',
+          'tournament.tournamentName',
+          'tournament.createdAt',
+          'tournament.isDeleted',
+          'match.matchId',
+          'sponsor.sponsorId'
         ])
-        .where('tournament.tournament_id = :tournId', { tournId })
+        .where('tournament.tournamentId = :tournId', { tournId: id })
         .getOne()
-      if (!tournament) return 0
-      return tournament
     } catch (error) {
       console.log(error)
+      return null
     }
   },
-  async findTournamentByName(title: string) {
+  async findTournamentByName(name: string) {
     try {
-      const tournament = await tournamentRepository
+      return await tournamentRepository
         .createQueryBuilder('tournament')
         .innerJoin('tournament.match', 'match')
         .innerJoin('tournament.sponsor', 'sponsor')
         .select([
-          'tournament.tournament_id',
-          'tournament.tournament_name',
-          'tournament.date_held',
-          'tournament.is_deleted',
-          'match.match_id',
-          'sponsor.sponsor_id'
+          'tournament.tournamentId',
+          'tournament.tournamentName',
+          'tournament.createdAt',
+          'tournament.isDeleted',
+          'match.matchId',
+          'sponsor.sponsorId'
         ])
-        .where('tournament.tournament_name = :title', { title })
+        .where('tournament.tournamentName = :name', { name })
         .getOne()
-      if (!tournament) return 0
-      return tournament
     } catch (error) {
       console.log(error)
+      return null
     }
   },
-  async softDeleteTournamentById(id: string | number) {
+  async softDeleteTournamentById(id: number) {
     try {
-      const checkRes = checkIdValidity(id)
-      if (checkRes === 0) return 0
-      const tournId = checkRes.id
-
-      const tournamentAvailableCheck =
-        await tournamentRepository.findTournamentById(tournId)
-      if (tournamentAvailableCheck === 0) return 0
+      const tournament = await tournamentRepository.findTournamentById(id)
+      if (!tournament) return null
       return await tournamentRepository
         .createQueryBuilder('tournament')
         .update(Tournament)
         .set({
-          is_deleted: IsDeleted.DELETED,
-          delete_date: () => 'GETDATE()'
+          isDeleted: IsDeleted.DELETED,
+          deletedAt: () => 'GETDATE()'
         })
-        .where('tournament.tournament_id = :tournId', { tournId })
+        .where('tournament.tournamentId = :tournId', { tournId: id })
         .execute()
     } catch (error) {
       console.log(error)
+      return null
     }
   },
-  async softDeleteTournamentByName(title: string) {
+  async softDeleteTournamentByName(name: string) {
     try {
-      const tournamentAvailableCheck =
-        await tournamentRepository.findTournamentByName(title)
-      if (tournamentAvailableCheck === 0) return 0
+      const tournament = await tournamentRepository.findTournamentByName(name)
+      if (!tournament) return null
       return await tournamentRepository
         .createQueryBuilder('tournament')
         .update(Tournament)
         .set({
-          is_deleted: IsDeleted.DELETED,
-          delete_date: () => 'GETDATE()'
+          isDeleted: IsDeleted.DELETED,
+          deletedAt: () => 'GETDATE()'
         })
-        .where('tournament.tournament_name = :title', { title })
+        .where('tournament.tournamentName = :name', { name })
         .execute()
     } catch (error) {
       console.log(error)
+      return null
     }
   },
 
-  async hardDeleteTournamentById(id: string | number) {
+  async hardDeleteTournamentById(id: number) {
     try {
-      const checkRes = checkIdValidity(id)
-      if (checkRes === 0) return 0
-      const tournamentId = checkRes.id
-
-      const tournamentAvailableCheck =
-        await tournamentRepository.findTournamentById(tournamentId)
-      if (tournamentAvailableCheck === 0) return 0
+      const tournament = await tournamentRepository.findTournamentById(id)
+      if (!tournament) return null
       return await tournamentRepository
         .createQueryBuilder('tournament')
         .delete()
         .from(Tournament)
-        .where('tournament.tournament_id = :tournamentId', { tournamentId })
+        .where('tournament.tournamentId = :tournamentId', { tournamentId: id })
         .execute()
     } catch (error) {
       console.log(error)
+      return null
     }
   },
 
-  async hardDeleteTournamentByName(title: string) {
+  async hardDeleteTournamentByName(name: string) {
     try {
-      const tournamentAvailableCheck =
-        await tournamentRepository.findTournamentByName(title)
-      if (tournamentAvailableCheck === 0) return 0
+      const tournament = await tournamentRepository.findTournamentByName(name)
+      if (!tournament) return null
       return await tournamentRepository
-        .createQueryBuilder('sponsor')
+        .createQueryBuilder('tournament')
         .delete()
         .from(Tournament)
-        .where('tournament.tournament_name = :title', { title: title })
+        .where('tournament.tournamentName = :name', { name: name })
         .execute()
     } catch (error) {
       console.log(error)
+      return null
     }
   },
 
-  async createNewTournament(
-    title: string,
-    matchId?: string | number,
-    brandName?: string,
-    sponsId?: string
-  ) {
-    if (!matchId) return 0
-    const matchIdCheckRes = checkIdValidity(matchId)
-    if (matchIdCheckRes === 0) return 0
-    const checkedMatchId = matchIdCheckRes.id
-    const match = matchRepository.findMatchById(checkedMatchId)
-    const newTournament = tournamentRepository.create()
-    tournamentRepository
-      .createQueryBuilder('tournament')
-      .update(Tournament)
-      .set({
-        tournament_name: title,
-        date_held: () => 'GETDATE()'
-      })
-
-    // if (matchId || matchId !== '') {
-    //   try {
-    //     const checkRes = checkIdValidity(matchId)
-    //     if (checkRes === 0) return 0
-    //     const checkedMatchId = checkRes.id
-
-    //     const match = await matchRepository.findMatchById(matchId)
-    //     if (match === 0) return 0
-    //     const match = team.team_id
-
-    //     await tournamentRepository
-    //       .createQueryBuilder('sponsor')
-    //       .relation(Sponsor, 'sponsored_teams')
-    //       .of(newSponsor.sponsor_id)
-    //       .add(teamId)
-    //   } catch (error) {
-    //     console.log()
-    //   }
-    // }
-    // if (tournament_name || tournament_name !== '') {
-    //   try {
-    //     const tournament = await tournamentRepository.findTournamentByName(
-    //       tournament_name
-    //     )
-    //     if (tournament === 0) return 0
-    //     const tournamentId = tournament.tournament_id
-    //     await tournamentRepository
-    //       .createQueryBuilder('sponsor')
-    //       .relation(Sponsor, 'sponsored_tournaments')
-    //       .of(newSponsor.sponsor_id)
-    //       .add(tournamentId)
-    //   } catch (error) {
-    //     console.log(error)
-    //   }
+  async createNewTournament(name: string) {
+    const newTournament = tournamentRepository.create({
+      tournamentName: name
+    })
   }
 })

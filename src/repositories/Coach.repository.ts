@@ -9,47 +9,40 @@ export const coachRepository = AppDataSource.getRepository(Coach).extend({
       .innerJoinAndSelect('coach.user', 'user')
       .innerJoinAndSelect('coach.team', 'team')
       .select([
-        'coach.coach_id',
-        'user.user_id',
+        'coach.coachId',
+        'user.userId',
         'user.role',
-        'user.first_name',
-        'user.last_name',
+        'user.firstName',
+        'user.lastName',
         'user.dob',
         'user.age',
         'user.job',
-        'user.is_deleted',
-        'team.team_id',
-        'team.team_name'
+        'user.isDeleted',
+        'team.teamId',
+        'team.teamName'
       ])
-      .where('team.is_deleted = :isTeamDeleted', { isTeamDeleted: 0 })
-      .andWhere('user.is_deleted = :isUserDeleted', { isUserDeleted: 0 })
       .getMany()
   },
 
-  async findCoachById(id: number | string) {
-    const checkRes = checkIdValidity(id)
-    if (checkRes === 0) return 0
-    const checkedId = checkRes.id
+  async findCoachById(id: number) {
     return await coachRepository
       .createQueryBuilder('coach')
       .innerJoinAndSelect('coach.user', 'user')
       .innerJoinAndSelect('coach.team', 'team')
       .select([
-        'coach.coach_id',
-        'user.user_id',
+        'coach.coachId',
+        'user.userId',
         'user.role',
-        'user.first_name',
-        'user.last_name',
+        'user.firstName',
+        'user.lastName',
         'user.dob',
         'user.age',
         'user.job',
-        'user.is_deleted',
-        'team.team_id',
-        'team.team_name'
+        'user.isDeleted',
+        'team.teamId',
+        'team.teamName'
       ])
-      .where('coach.coach_id = :checkedId', { checkedId })
-      .andWhere('team.is_deleted = :isTeamDeleted', { isTeamDeleted: 0 })
-      .andWhere('user.is_deleted = :isUserDeleted', { isUserDeleted: 0 })
+      .where('coach.coachId = :checkedId', { id })
       .getOne()
   },
   async findCoachByFirstName(firstName: string) {
@@ -58,21 +51,19 @@ export const coachRepository = AppDataSource.getRepository(Coach).extend({
       .innerJoinAndSelect('coach.user', 'user')
       .innerJoinAndSelect('coach.team', 'team')
       .select([
-        'coach.coach_id',
-        'user.user_id',
+        'coach.coachId',
+        'user.userId',
         'user.role',
-        'user.first_name',
-        'user.last_name',
+        'user.firstName',
+        'user.lastName',
         'user.dob',
         'user.age',
         'user.job',
-        'user.is_deleted',
-        'team.team_id',
-        'team.team_name'
+        'user.isDeleted',
+        'team.teamId',
+        'team.teamName'
       ])
-      .where('user.first_name = :firstName', { firstName })
-      .where('team.is_deleted = :isTeamDeleted', { isTeamDeleted: 0 })
-      .andWhere('user.is_deleted = :isUserDeleted', { isUserDeleted: 0 })
+      .where('user.firstName = :firstName', { firstName })
       .getMany()
   },
   async findCoachByLastName(lastName: string) {
@@ -81,21 +72,19 @@ export const coachRepository = AppDataSource.getRepository(Coach).extend({
       .innerJoinAndSelect('coach.user', 'user')
       .innerJoinAndSelect('coach.team', 'team')
       .select([
-        'coach.coach_id',
-        'user.user_id',
+        'coach.coachId',
+        'user.userId',
         'user.role',
-        'user.first_name',
-        'user.last_name',
+        'user.firstName',
+        'user.lastName',
         'user.dob',
         'user.age',
         'user.job',
-        'user.is_deleted',
-        'team.team_id',
-        'team.team_name'
+        'user.isDeleted',
+        'team.teamId',
+        'team.teamName'
       ])
-      .where('user.first_name = :lastName', { lastName })
-      .where('team.is_deleted = :isTeamDeleted', { isTeamDeleted: 0 })
-      .andWhere('user.is_deleted = :isUserDeleted', { isUserDeleted: 0 })
+      .where('user.firstName = :lastName', { lastName })
       .getMany()
   },
   async findCoachByName(firstName: string, lastName: string) {
@@ -104,48 +93,41 @@ export const coachRepository = AppDataSource.getRepository(Coach).extend({
       .innerJoinAndSelect('coach.user', 'user')
       .innerJoinAndSelect('coach.team', 'team')
       .select([
-        'coach.coach_id',
-        'user.user_id',
+        'coach.coachId',
+        'user.userId',
         'user.role',
-        'user.first_name',
-        'user.last_name',
+        'user.firstName',
+        'user.lastName',
         'user.dob',
         'user.age',
         'user.job',
-        'user.is_deleted',
-        'team.team_id',
-        'team.team_name'
+        'user.isDeleted',
+        'team.teamId',
+        'team.teamName'
       ])
-      .where('user.first_name = :firstName', { firstName })
-      .andWhere('user.last_name = :lastName', { lastName })
-      .andWhere('team.is_deleted = :isTeamDeleted', { isTeamDeleted: 0 })
-      .andWhere('user.is_deleted = :isUserDeleted', { isUserDeleted: 0 })
+      .where('user.firstName = :firstName', { firstName })
+      .andWhere('user.lastName = :lastName', { lastName })
       .getMany()
   },
-  async findCoachByTeamId(teamId: string | number) {
-    const checkRes = checkIdValidity(teamId)
-    if (checkRes === 0) return 0
-    const checkedId = checkRes.id
+  async findCoachByTeamId(teamId: number) {
     return await coachRepository
       .createQueryBuilder('coach')
       .innerJoinAndSelect('coach.user', 'user')
       .innerJoinAndSelect('coach.team', 'team')
       .select([
-        'coach.coach_id',
-        'user.user_id',
+        'coach.coachId',
+        'user.userId',
         'user.role',
-        'user.first_name',
-        'user.last_name',
+        'user.firstName',
+        'user.lastName',
         'user.dob',
         'user.age',
         'user.job',
-        'user.is_deleted',
-        'team.team_id',
-        'team.team_name'
+        'user.isDeleted',
+        'team.teamId',
+        'team.teamName'
       ])
-      .where('team.team_id = :teamId', { checkedId })
-      .andWhere('team.is_deleted = :isTeamDeleted', { isTeamDeleted: 0 })
-      .andWhere('user.is_deleted = :isUserDeleted', { isUserDeleted: 0 })
+      .where('team.teamId = :teamId', { teamId })
       .getOne()
   },
 
@@ -155,21 +137,19 @@ export const coachRepository = AppDataSource.getRepository(Coach).extend({
       .innerJoinAndSelect('coach.user', 'user')
       .innerJoinAndSelect('coach.team', 'team')
       .select([
-        'coach.coach_id',
-        'user.user_id',
+        'coach.coachId',
+        'user.userId',
         'user.role',
-        'user.first_name',
-        'user.last_name',
+        'user.firstName',
+        'user.lastName',
         'user.dob',
         'user.age',
         'user.job',
-        'user.is_deleted',
-        'team.team_id',
-        'team.team_name'
+        'user.isDeleted',
+        'team.teamId',
+        'team.teamName'
       ])
-      .where('team.team_name = :teamName', { teamName })
-      .andWhere('team.is_deleted = :isTeamDeleted', { isTeamDeleted: 0 })
-      .andWhere('user.is_deleted = :isUserDeleted', { isUserDeleted: 0 })
+      .where('team.teamName = :teamName', { teamName })
       .getOne()
   }
 })

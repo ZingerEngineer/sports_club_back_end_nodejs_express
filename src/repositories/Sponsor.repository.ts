@@ -4,11 +4,13 @@ import { IsDeleted } from '../enums/globalEnums'
 import { checkIdValidity } from '../utils/checkIdValidity'
 import { teamRepository } from './team.repository'
 import { tournamentRepository } from './tournament.repository'
+import { Team } from '../entities/Team'
+import { Tournament } from '../entities/Tournament'
 
 export const sponsorRepository = AppDataSource.getRepository(Sponsor).extend({
-  async findSponsors(isDeleted: number | null) {
+  async findSponsors() {
     try {
-      const query = sponsorRepository
+      return await sponsorRepository
         .createQueryBuilder('sponsor')
         .innerJoin('sponsor.team', 'team')
         .innerJoin('sponsor.tournament', 'tournament')
@@ -21,26 +23,15 @@ export const sponsorRepository = AppDataSource.getRepository(Sponsor).extend({
           'tournament.tournamentId',
           'tournament.tournamentName'
         ])
-
-      if (isDeleted !== IsDeleted.NULL) {
-        query.where('sponsor.isDeleted = :isDeleted', {
-          isDeleted: isDeleted
-        })
-      }
-      const sponsors = await query.getMany()
-      if (sponsors.length === 0) return null
-      return sponsors
+        .getMany()
     } catch (error) {
       console.log(error)
+      return null
     }
   },
 
   async findSponsorById(id: number) {
     try {
-      const checkRes = checkIdValidity(id)
-      if (checkRes === 0) return null
-      const sponsId = checkRes.id
-
       const sponsor = await sponsorRepository
         .createQueryBuilder('sponsor')
         .innerJoin('sponsor.team', 'team')
@@ -54,15 +45,15 @@ export const sponsorRepository = AppDataSource.getRepository(Sponsor).extend({
           'tournament.tournamentId',
           'tournament.tournamentName'
         ])
-        .where('sponsor.sponsorId = :sponsId', { sponsId })
+        .where('sponsor.sponsorId = :sponsId', { sponsId: id })
         .getOne()
-      if (!sponsor) return null
       return sponsor
     } catch (error) {
       console.log(error)
+      return null
     }
   },
-  async findSponsorByName(brandName: string) {
+  async findSponsorByName(name: string) {
     try {
       const sponsor = await sponsorRepository
         .createQueryBuilder('sponsor')
@@ -77,13 +68,12 @@ export const sponsorRepository = AppDataSource.getRepository(Sponsor).extend({
           'tournament.tournamentId',
           'tournament.tournamentName'
         ])
-        .where('sponsor.name = :brandName', { brandName })
+        .where('sponsor.name = :name', { name })
         .getOne()
-
-      if (!sponsor) return null
       return sponsor
     } catch (error) {
       console.log(error)
+      return null
     }
   },
   async softDeleteSponsorById(id: number) {
@@ -97,7 +87,7 @@ export const sponsorRepository = AppDataSource.getRepository(Sponsor).extend({
           isDeleted: IsDeleted.DELETED,
           deletedAt: () => 'GETDATE()'
         })
-        .where('sponsor.sponsorId = :sponsId', { id })
+        .where('sponsor.sponsorId = :sponsId', { sponsId: id })
         .execute()
     } catch (error) {
       console.log(error)
@@ -115,7 +105,7 @@ export const sponsorRepository = AppDataSource.getRepository(Sponsor).extend({
           isDeleted: IsDeleted.DELETED,
           deletedAt: () => 'GETDATE()'
         })
-        .where('sponsor.name = :brandName', { brandName: name })
+        .where('sponsor.name = :name', { name: name })
         .execute()
     } catch (error) {
       console.log(error)
@@ -131,7 +121,7 @@ export const sponsorRepository = AppDataSource.getRepository(Sponsor).extend({
         .createQueryBuilder('sponsor')
         .delete()
         .from(Sponsor)
-        .where('sponsor.sponsorId = :sponsId', { id })
+        .where('sponsor.sponsorId = :sponsId', { sponsId: id })
         .execute()
     } catch (error) {
       console.log(error)
@@ -146,53 +136,17 @@ export const sponsorRepository = AppDataSource.getRepository(Sponsor).extend({
         .createQueryBuilder('sponsor')
         .delete()
         .from(Sponsor)
-        .where('sponsor.name = :brandName', { brandName: name })
+        .where('sponsor.name = :name', { name: name })
         .execute()
     } catch (error) {
       console.log(error)
     }
   },
 
-  async createNewSponsor(
-    name: string,
-    teamName?: string,
-    tournamentName?: string
-  ) {
-    const newSponsor = sponsorRepository.create()
-    sponsorRepository.createQueryBuilder('sponsor').update(Sponsor).set({
+  async createNewSponsor(name: string) {
+    const newSponsor = sponsorRepository.create({
       name: name
     })
-
-    if (teamName || teamName !== '') {
-      try {
-        const team = await teamRepository.findTeamByName(teamName)
-        if (!team) return null
-        const teamId = team.teamId
-
-        await sponsorRepository
-          .createQueryBuilder('sponsor')
-          .relation(Sponsor, 'sponsored_teams')
-          .of(newSponsor.sponsorId)
-          .add(teamId)
-      } catch (error) {
-        console.log()
-      }
-    }
-    if (tournamentName || tournamentName !== '') {
-      try {
-        const tournament = await tournamentRepository.findTournamentByName(
-          tournamentName
-        )
-        if (!tournament) return null
-        const tournamentId = tournament.tournamentId
-        await sponsorRepository
-          .createQueryBuilder('sponsor')
-          .relation(Sponsor, 'sponsored_tournaments')
-          .of(newSponsor.sponsorId)
-          .add(tournamentId)
-      } catch (error) {
-        console.log(error)
-      }
-    }
+    return await sponsorRepository.save(newSponsor)
   }
 })

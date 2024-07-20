@@ -14,111 +14,106 @@ import {
 import { Session } from '../entities/Session'
 
 export const userRepository = AppDataSource.getRepository(User).extend({
-  async findUsers(isDeleted?: IsDeleted) {
-    let users: User[]
-    if (isDeleted in IsDeleted) {
-      users = await userRepository.find({
+  async findUsers() {
+    try {
+      return await userRepository.find({
+        relations: {
+          teamMembers: true,
+          coach: true
+        }
+      })
+    } catch (error) {
+      console.log(error)
+      return null
+    }
+  },
+
+  async findUserById(id: number) {
+    try {
+      return await userRepository.findOne({
         where: {
-          isDeleted: isDeleted
+          userId: id
         },
         relations: {
           teamMembers: true,
           coach: true
         }
       })
+    } catch (error) {
+      console.log(error)
+      return null
     }
-    users = await userRepository.find({
-      relations: {
-        teamMembers: true,
-        coach: true
-      }
-    })
-    if (users.length === 0) return null
-    return users
-  },
-
-  async findUserById(id: number) {
-    let user: User
-    user = await userRepository.findOne({
-      where: {
-        userId: id
-      }
-    })
-    if (!user) return null
-    return user
   },
 
   async findUsersByFirstName(firstName: string) {
-    let users: User[] = []
-    if (null === firstName || undefined === firstName) return []
-    users = await userRepository.find({
-      where: { firstName: firstName },
-      relations: { teamMembers: true, coach: true }
-    })
-    if (users.length === 0) return []
-    return users
+    try {
+      return await userRepository.find({
+        where: { firstName: firstName },
+        relations: { teamMembers: true, coach: true }
+      })
+    } catch (error) {
+      console.log(error)
+      return null
+    }
   },
   async findUserByEmail(email: string) {
-    let user: User
-    user = await userRepository.findOne({
-      where: { email },
-      relations: { teamMembers: true, coach: true }
-    })
-    if (!user) return null
-    return user
+    try {
+      return await userRepository.findOne({
+        where: { email },
+        relations: { teamMembers: true, coach: true }
+      })
+    } catch (error) {
+      console.log(error)
+      return null
+    }
   },
 
   async findUserByPhone(phone: string) {
-    let user: User
-    user = await userRepository.findOne({
-      where: { phone },
-      relations: { teamMembers: true, coach: true }
-    })
-    if (!user) return null
-    return user
+    try {
+      return await userRepository.findOne({
+        where: { phone },
+        relations: { teamMembers: true, coach: true }
+      })
+    } catch (error) {
+      console.log(error)
+      return null
+    }
   },
 
   async findUsersByLastName(lastName: string) {
-    let users: User[] = []
-    if (null === lastName || undefined === lastName) return 0
-    users = await userRepository.find({
-      where: { lastName: lastName },
-      relations: { teamMembers: true, coach: true }
-    })
-    if (users.length === 0) return 0
-    return users
+    try {
+      return await userRepository.find({
+        where: { lastName: lastName },
+        relations: { teamMembers: true, coach: true }
+      })
+    } catch (error) {
+      console.log(error)
+      return null
+    }
   },
   async findUsersByFullName(firstName: string, lastName: string) {
-    let users: User[] = []
-    if (
-      null === firstName ||
-      undefined === firstName ||
-      null === lastName ||
-      undefined === lastName
-    )
-      return 0
-    users = await userRepository.find({
-      where: {
-        firstName: firstName,
-        lastName: lastName
-      },
-      relations: {
-        teamMembers: true,
-        coach: true
-      }
-    })
-    if (users.length === 0) return 0
-    return users
-  },
-  async softDeleteUserById(id: string | number) {
     try {
-      const checkRes = checkIdValidity(id)
-      if (checkRes === 0) return 0
-      const checkedId = checkRes.id
-      const user = await userRepository.find({
-        where: { userId: checkedId }
+      return await userRepository.find({
+        where: {
+          firstName: firstName,
+          lastName: lastName
+        },
+        relations: {
+          teamMembers: true,
+          coach: true
+        }
       })
-      if (!user) return 0
+    } catch (error) {
+      console.log(error)
+      return null
+    }
+  },
+  async softDeleteUserById(id: number) {
+    try {
+      const user = await userRepository.find({
+        where: { userId: id }
+      })
+      if (!user) return null
       return await userRepository
         .createQueryBuilder('user')
         .update(User)
@@ -126,30 +121,29 @@ export const userRepository = AppDataSource.getRepository(User).extend({
           isDeleted: IsDeleted.DELETED,
           deletedAt: () => 'GETDATE()'
         })
-        .where('user.userId = :checkedId', { checkedId })
+        .where('user.userId = :checkedId', { id })
         .execute()
     } catch (error) {
       console.log(error)
+      return null
     }
   },
 
-  async hardDeleteUserById(id: string | number) {
+  async hardDeleteUserById(id: number) {
     try {
-      const checkRes = checkIdValidity(id)
-      if (checkRes === 0) return 0
-      const checkedId = checkRes.id
       const user = await userRepository.find({
-        where: { userId: checkedId }
+        where: { userId: id }
       })
-      if (!user) return 0
+      if (!user) return null
       return await userRepository
         .createQueryBuilder('user')
         .delete()
         .from(User)
-        .where('user.userId = :checkedId', { checkedId })
+        .where('user.userId = :checkedId', { checkedId: id })
         .execute()
     } catch (error) {
       console.log(error)
+      return null
     }
   },
   async updateUserSessionId(id: number, session: Session) {
