@@ -61,7 +61,7 @@ export class Sponsor {
     default: () => 'GETDATE()',
     nullable: false
   })
-  createdAt: Date
+  createdAt: string
 
   @Column({
     type: 'int',
@@ -69,10 +69,10 @@ export class Sponsor {
     default: IsDeleted.EXISTS,
     nullable: false
   })
-  isDeleted: IsDeleted
+  isDeleted: string
 
   @DeleteDateColumn({
     type: 'datetime'
   })
-  deletedAt: Date
+  deletedAt: string
 }

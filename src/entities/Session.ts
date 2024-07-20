@@ -33,12 +33,12 @@ export class Session {
     default: () => 'GETDATE()',
     nullable: false
   })
-  createdAt: Date
+  createdAt: string
 
   @Column({
     type: 'datetime',
     default: '',
     nullable: false
   })
-  lastReplacedAt: Date
+  lastReplacedAt: string
 }

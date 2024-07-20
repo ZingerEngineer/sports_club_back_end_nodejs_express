@@ -36,7 +36,7 @@ export class Sport {
     default: () => 'GETDATE()',
     nullable: false
   })
-  createdAt: Date
+  createdAt: string
 
   @Column({
     type: 'int',
@@ -44,12 +44,12 @@ export class Sport {
     nullable: false,
     default: IsDeleted.EXISTS
   })
-  isDeleted: IsDeleted
+  isDeleted: number
 
   @DeleteDateColumn({
     type: 'datetime'
   })
-  deletedAt: Date
+  deletedAt: string
 
   @OneToMany(() => Team, (teams) => teams.sport, {
     onDelete: 'CASCADE',

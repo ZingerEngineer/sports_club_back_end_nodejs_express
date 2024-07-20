@@ -4,7 +4,6 @@ import {
   Column,
   ManyToOne,
   ManyToMany,
-  JoinColumn,
   JoinTable,
   DeleteDateColumn
 } from 'typeorm'
@@ -20,12 +19,12 @@ export class Match {
   matchId: number
 
   @Column({
-    type: 'nvarchar',
-    length: '50',
+    type: 'int',
+    width: 1,
     default: MatchType.SCRIMMAGE,
     nullable: false
   })
-  type: MatchType
+  type: number
 
   @ManyToOne(() => Sport, (sport) => sport.matches)
   sport: Sport
@@ -66,7 +65,7 @@ export class Match {
     default: () => 'GETDATE()',
     nullable: false
   })
-  createdAt: Date
+  createdAt: string
 
   @Column({
     type: 'time',
@@ -82,10 +81,10 @@ export class Match {
     nullable: false,
     default: IsDeleted.EXISTS
   })
-  isDeleted: IsDeleted
+  isDeleted: number
 
   @DeleteDateColumn({
     type: 'datetime'
   })
-  deletedAt: Date
+  deletedAt: string
 }

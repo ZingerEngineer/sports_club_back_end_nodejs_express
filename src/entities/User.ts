@@ -30,7 +30,7 @@ export class User {
     default: UserRoles.USER,
     nullable: false
   })
-  role: UserRoles
+  role: number
 
   @OneToOne(() => Session, (session) => session.user, {
     cascade: true,
@@ -68,7 +68,7 @@ export class User {
     default: UserEmailVerificationState.UNVERIFIED,
     nullable: false
   })
-  emailVerified: UserEmailVerificationState
+  emailVerified: number
 
   @Column({
     type: 'varchar',
@@ -102,19 +102,19 @@ export class User {
   lastName: string
 
   @Column({
-    type: 'nvarchar',
-    length: 10,
-    default: '',
+    type: 'int',
+    width: 1,
+    default: UserGenders.MALE,
     nullable: false
   })
-  gender: UserGenders
+  gender: number
 
   @Column({
     type: 'date',
     default: '',
     nullable: false
   })
-  dob: Date
+  dob: string
 
   @Column({
     type: 'int',
@@ -124,12 +124,12 @@ export class User {
   age: number
 
   @Column({
-    type: 'nvarchar',
-    length: 20,
+    type: 'int',
+    width: 1,
     nullable: false,
     default: UserJobs.GUEST
   })
-  job: UserJobs
+  job: number
 
   @OneToMany(() => TeamMember, (teamMembers) => teamMembers.user)
   teamMembers: TeamMember
@@ -142,7 +142,7 @@ export class User {
     default: () => 'GETDATE()',
     nullable: false
   })
-  createdAt: Date
+  createdAt: string
 
   @Column({
     type: 'int',
@@ -150,11 +150,11 @@ export class User {
     default: IsDeleted.EXISTS,
     nullable: false
   })
-  isDeleted: IsDeleted
+  isDeleted: number
 
   @DeleteDateColumn({
     type: 'datetime'
   })
-  deletedAt: Date
+  deletedAt: string
 }
 

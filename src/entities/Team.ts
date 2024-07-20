@@ -30,12 +30,12 @@ export class Team {
   teamName: string
 
   @Column({
-    type: 'nvarchar',
-    length: 20,
+    type: 'int',
+    width: 1,
     nullable: false,
     default: TeamType.CANDIDATES
   })
-  teamType: TeamType
+  teamType: number
 
   @Column({
     type: 'int',
@@ -84,7 +84,7 @@ export class Team {
     default: () => 'GETDATE()',
     nullable: false
   })
-  createdAt: Date
+  createdAt: string
 
   @Column({
     type: 'int',
@@ -92,10 +92,10 @@ export class Team {
     default: IsDeleted.EXISTS,
     nullable: false
   })
-  isDeleted: IsDeleted
+  isDeleted: number
 
   @DeleteDateColumn({
     type: 'datetime'
   })
-  deletedAt: Date
+  deletedAt: string
 }

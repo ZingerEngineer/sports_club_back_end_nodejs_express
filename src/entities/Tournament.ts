@@ -2,7 +2,6 @@ import {
   PrimaryGeneratedColumn,
   Entity,
   Column,
-  JoinColumn,
   OneToMany,
   DeleteDateColumn,
   ManyToMany
@@ -35,7 +34,7 @@ export class Tournament {
     default: () => 'GETDATE()',
     nullable: false
   })
-  createdAt: Date
+  createdAt: string
 
   @Column({
     type: 'int',
@@ -43,10 +42,10 @@ export class Tournament {
     default: IsDeleted.EXISTS,
     nullable: false
   })
-  isDeleted: IsDeleted
+  isDeleted: number
 
   @DeleteDateColumn({
     type: 'datetime'
   })
-  deletedAt: Date
+  deletedAt: string
 }

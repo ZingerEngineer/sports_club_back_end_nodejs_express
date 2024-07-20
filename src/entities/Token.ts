@@ -33,14 +33,15 @@ export class Token {
     default: () => 'GETDATE()',
     nullable: false
   })
-  createdAt: Date
+  createdAt: string
 
   @Column({
-    type: 'varchar',
+    type: 'int',
+    width: 1,
     default: TokenTypes.SAFETY,
     nullable: false
   })
-  tokenType: TokenTypes
+  tokenType: number
 
   @Column({
     type: 'int',
