@@ -1,11 +1,6 @@
 import { AppDataSource } from '../services/data-source'
 import { Sponsor } from '../entities/Sponsor'
 import { IsDeleted } from '../enums/globalEnums'
-import { checkIdValidity } from '../utils/checkIdValidity'
-import { teamRepository } from './team.repository'
-import { tournamentRepository } from './tournament.repository'
-import { Team } from '../entities/Team'
-import { Tournament } from '../entities/Tournament'
 
 export const sponsorRepository = AppDataSource.getRepository(Sponsor).extend({
   async findSponsors() {

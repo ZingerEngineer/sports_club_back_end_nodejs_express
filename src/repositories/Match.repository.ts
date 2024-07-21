@@ -97,7 +97,7 @@ export const matchRepository = AppDataSource.getRepository(Match).extend({
     sport: Sport,
     duration: string,
     tournament?: Tournament,
-    type?: string,
+    type?: number,
     createdAt?: string
   ) {
     if (!type) type = MatchType.SCRIMMAGE
