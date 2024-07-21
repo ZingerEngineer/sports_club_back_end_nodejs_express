@@ -30,8 +30,7 @@ const loginController: TLoginController = async (req, res) => {
       session
     })
   } catch (error) {
-    console.log(error)
-    return null
+    res.status(400).json({ message: 'Login failed.' })
   }
 }
 
@@ -53,7 +52,7 @@ const signUpController: TSignUpController = async (
       dob,
       job
     )
-    if (!session) res.status(500)
+    if (!session) throw new Error('Error happened')
     res.cookie('sessionId', session.sessionId, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -65,7 +64,6 @@ const signUpController: TSignUpController = async (
       message: 'User registered successfully.'
     })
   } catch (error) {
-    console.log(error)
     res.status(400).json({ message: 'Signup failed.' })
   }
 }

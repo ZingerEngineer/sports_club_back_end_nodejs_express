@@ -14,7 +14,6 @@ import { sessionRepository } from '../repositories/session.repository'
 import { sendEmail } from '../services/mailerConfig'
 import { tokenRepository } from '../repositories/token.repository'
 import { TokenTypes } from '../enums/token.enums'
-import { Token } from '../entities/Token'
 
 dotenv.config()
 
@@ -50,20 +49,20 @@ const decryptSessionData = async (token: string): Promise<JWTPayload> => {
 const sendVerificationLink = async (email: string) => {
   try {
     const user = await userRepository.findUserByEmail(email)
-    if (!user) return null
+    if (!user) throw new Error('Creating email verification failed')
     const userVerificationToken = user.tokens.filter(
       (token) => token.tokenType === TokenTypes.VERIFYEMAIL
     )
-    if (!userVerificationToken) return null
-    const verifyUrl = `http://localhost/v1/verify/id:${userVerificationToken}`
+    if (!userVerificationToken)
+      throw new Error('Creating email verification failed')
+    const verifyUrl = `http://localhost/v1/verify/email?vt=${userVerificationToken}`
     await sendEmail(
       email,
       'Sports club email verification',
       `The following link is a one time link and is available for 3 minutes, carefully use it to validate your email: ${verifyUrl}.`
     )
   } catch (error) {
-    console.log(error)
-    return null
+    throw new Error('Creating email verification failed')
   }
 }
 
@@ -71,9 +70,9 @@ export const verifyEmail = async (userVerificationToken: string) => {
   try {
     let userId = ''
     let userEmail = ''
-    if (!userVerificationToken) return null
+    if (!userVerificationToken) throw new Error('Invaid token')
     let tokenVerificationResults = verify(userVerificationToken, tokenSecret)
-    if (!tokenVerificationResults) return null
+    if (!tokenVerificationResults) throw new Error('Invalid token')
 
     if (typeof tokenVerificationResults !== 'string') {
       userId = tokenVerificationResults.userId
@@ -86,40 +85,41 @@ export const verifyEmail = async (userVerificationToken: string) => {
       tokenBody: userVerificationToken
     })
   } catch (error) {
-    console.log(error)
-    return null
+    throw new Error('Invaid token')
   }
 }
 
 const login = async (email: string, phone: string, password: string) => {
-  let dbUser: User
-  if (email) {
-    let dbUser = await userRepository.findUserByEmail(email)
-    if (!dbUser) return null
-  }
-  if (phone) {
-    let dbUser = await userRepository.findUserByPhone(phone)
-    if (!dbUser) return null
-  }
+  try {
+    let dbUser: User
+    if (email) {
+      dbUser = await userRepository.findUserByEmail(email)
+    }
+    if (phone) {
+      dbUser = await userRepository.findUserByPhone(phone)
+    }
+    if (!dbUser) throw new Error('Login failed')
+    const passCompareCheck = await bcrypt.compare(dbUser.password, password)
+    if (!passCompareCheck) throw new Error('Login failed')
 
-  const compareCheck = await bcrypt.compare(dbUser.password, password)
-  if (!compareCheck) return null
+    const encryptedSessionData = await encryptSessionData(
+      JSON.stringify({ status: UserLogStatus.LOGGEDIN })
+    )
+    const signedEncryptedSessionData = await signTokenizedSessionData(
+      encryptedSessionData
+    )
+    const newSession = await sessionRepository.createSession(
+      dbUser,
+      24 * 60 * 60 * 1000,
+      signedEncryptedSessionData
+    )
 
-  const encryptedSessionData = await encryptSessionData(
-    JSON.stringify({ status: UserLogStatus.LOGGEDIN })
-  )
-  const signedEncryptedSessionData = await signTokenizedSessionData(
-    encryptedSessionData
-  )
-  const newSession = await sessionRepository.createSession(
-    dbUser,
-    24 * 60 * 60 * 1000,
-    signedEncryptedSessionData
-  )
-
-  return {
-    user: dbUser,
-    session: newSession
+    return {
+      user: dbUser,
+      session: newSession
+    }
+  } catch (error) {
+    throw new Error('Login failed')
   }
 }
 
@@ -136,25 +136,28 @@ const signUp = async (
   try {
     let dbUser: User
     dbUser = await userRepository.findUserByEmail(email)
-    if (dbUser) return null
+    if (dbUser) throw new Error('Signup failed')
     dbUser = await userRepository.findUserByPhone(phone)
-    if (dbUser) return null
+    if (dbUser) throw new Error('Signup failed')
 
-    const hashedPassword = await bcrypt.hash(password, 10)
     const newUser = await userRepository.createUser(
       firstName,
       lastName,
       gender,
       email,
       phone,
-      hashedPassword,
+      password,
       UserRoles.USER,
       dob,
       job
     )
 
     const verificationToken = sign(
-      { userId: newUser.userId, userEmail: newUser.email },
+      {
+        userId: newUser.userId,
+        userRole: newUser.role,
+        userEmail: newUser.email
+      },
       tokenSecret,
       {
         expiresIn: '3m'
@@ -188,17 +191,20 @@ const signUp = async (
       session: newSession
     }
   } catch (error) {
-    console.log(error)
-    return null
+    throw new Error('Signup failed')
   }
 }
 
 const logOut = async (id: number) => {
-  const user = await userRepository.findUserById(id)
-  if (!user) return null
-  await sessionRepository.delete({
-    user: user
-  })
+  try {
+    const user = await userRepository.findUserById(id)
+    if (!user) throw new Error('Logout failed')
+    await sessionRepository.delete({
+      user: user
+    })
+  } catch (error) {
+    throw new Error('Logout failed')
+  }
 }
 
 const signInWithGoogle = async () => {}
