@@ -1,14 +1,16 @@
 import { Request, Response, NextFunction } from 'express'
-import { userSignUpPayLoadSchema } from '../validationSchemas/user'
 import { ZodSchema } from 'zod'
 
 const validate = async (schema: ZodSchema, data: any) => {
   try {
     const checkRes = await schema.safeParseAsync(data)
     if (checkRes.error) {
+      console.log(checkRes.error)
       throw new Error('Validation Error')
     }
   } catch (error) {
+    console.log(error)
+
     throw new Error('Validation Error')
   }
 }
@@ -21,7 +23,11 @@ const validationMiddleWare =
       await validate(schema, body)
       next()
     } catch (error) {
-      return res.status(422).json({ message: 'Validation error' })
+      if (error instanceof Error)
+        return res.status(422).json({ message: 'Validation Error', error })
+      return res
+        .status(422)
+        .json({ message: 'Validation Error', err: error.message })
     }
   }
 
