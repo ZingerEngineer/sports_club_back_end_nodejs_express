@@ -20,7 +20,6 @@ const publicRouter = express.Router()
 publicRouter.get('/test', test)
 publicRouter.post(
   '/signup',
-  upload.none(),
   validationMiddleWare(userSignUpPayLoadSchema),
   signUpController
 )
