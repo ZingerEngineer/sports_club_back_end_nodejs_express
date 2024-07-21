@@ -69,7 +69,7 @@ export class Sponsor {
     default: IsDeleted.EXISTS,
     nullable: false
   })
-  isDeleted: string
+  isDeleted: number
 
   @DeleteDateColumn({
     type: 'datetime'
