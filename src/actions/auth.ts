@@ -14,54 +14,39 @@ import { sessionRepository } from '../repositories/session.repository'
 import { sendEmail } from '../services/mailerConfig'
 import { tokenRepository } from '../repositories/token.repository'
 import { TokenTypes } from '../enums/token.enums'
+import {
+  addMinutesToDate,
+  getMssqlUTCTimeStamp
+} from '../utils/generateIncomingUTCDate'
 
 dotenv.config()
 
 const tokenSecret = process.env.TOKEN_SECRET
-const sessionSecret = new TextEncoder().encode(process.env.SESSION_SECRET)
 
-const encryptSessionData = async (sessionData: string): Promise<string> => {
-  const encryptedSessionData = await new EncryptJWT({ data: sessionData })
-    .setProtectedHeader({ alg: 'HS256', enc: 'A128CBC-HS256' })
-    .setIssuedAt()
-    .setExpirationTime('1d')
-    .encrypt(sessionSecret)
-  return encryptedSessionData
-}
-
-const signTokenizedSessionData = async (
-  tokenSessionData: string
-): Promise<string> => {
-  const signedTokenizedSession = new SignJWT({ data: tokenSessionData }).sign(
-    new TextEncoder().encode(tokenSecret)
-  )
-
-  return signedTokenizedSession
-}
-
-// Helper function to decrypt the session data
-const decryptSessionData = async (token: string): Promise<JWTPayload> => {
-  const { payload } = await jwtVerify(token, sessionSecret)
-  if (!payload) return null
-  return payload
+const signSessionData = async (sessionData: string): Promise<string> => {
+  const signedSessionData = sign(sessionData, tokenSecret)
+  return signedSessionData
 }
 
 const sendVerificationLink = async (email: string) => {
   try {
     const user = await userRepository.findUserByEmail(email)
-    if (!user) throw new Error('Creating email verification failed')
+    if (!user) throw new Error('Creating email verification failed due to user')
+
     const userVerificationToken = user.tokens.filter(
       (token) => token.tokenType === TokenTypes.VERIFYEMAIL
-    )
+    )[0].tokenBody
     if (!userVerificationToken)
       throw new Error('Creating email verification failed')
     const verifyUrl = `http://localhost/v1/verify/email?vt=${userVerificationToken}`
-    await sendEmail(
+    const res = await sendEmail(
       email,
       'Sports club email verification',
       `The following link is a one time link and is available for 3 minutes, carefully use it to validate your email: ${verifyUrl}.`
     )
+    console.log(res)
   } catch (error) {
+    console.log(error)
     throw new Error('Creating email verification failed')
   }
 }
@@ -102,16 +87,16 @@ const login = async (email: string, phone: string, password: string) => {
     const passCompareCheck = await bcrypt.compare(dbUser.password, password)
     if (!passCompareCheck) throw new Error('Login failed')
 
-    const encryptedSessionData = await encryptSessionData(
+    const newSignedSessionData = await signSessionData(
       JSON.stringify({ status: UserLogStatus.LOGGEDIN })
     )
-    const signedEncryptedSessionData = await signTokenizedSessionData(
-      encryptedSessionData
+    const newSessionExpirationDate = getMssqlUTCTimeStamp(
+      addMinutesToDate(new Date(), 24 * 60)
     )
     const newSession = await sessionRepository.createSession(
       dbUser,
-      24 * 60 * 60 * 1000,
-      signedEncryptedSessionData
+      newSessionExpirationDate,
+      newSignedSessionData
     )
 
     return {
@@ -136,9 +121,13 @@ const signUp = async (
   try {
     let dbUser: User
     dbUser = await userRepository.findUserByEmail(email)
-    if (dbUser) throw new Error('Signup failed')
+    if (dbUser) {
+      throw new Error('Signup failed')
+    }
     dbUser = await userRepository.findUserByPhone(phone)
-    if (dbUser) throw new Error('Signup failed')
+    if (dbUser) {
+      throw new Error('Signup failed')
+    }
 
     const newUser = await userRepository.createUser(
       firstName,
@@ -166,7 +155,7 @@ const signUp = async (
 
     await tokenRepository.createToken(
       newUser,
-      '3m',
+      getMssqlUTCTimeStamp(addMinutesToDate(new Date(), 3)),
       verificationToken,
       TokenTypes.VERIFYEMAIL,
       1
@@ -174,17 +163,21 @@ const signUp = async (
 
     await sendVerificationLink(newUser.email)
 
-    const encryptedSessionData = await encryptSessionData(
-      JSON.stringify({ status: UserLogStatus.LOGGEDIN })
+    const newSignedSessionData = await signSessionData(
+      JSON.stringify({
+        status: UserLogStatus.LOGGEDIN
+      })
     )
-    const signedEncryptedSessionData = await signTokenizedSessionData(
-      encryptedSessionData
+    const newSessionExpirationDate = getMssqlUTCTimeStamp(
+      addMinutesToDate(new Date(), 60 * 24)
     )
     const newSession = await sessionRepository.createSession(
       newUser,
-      24 * 60 * 60 * 1000,
-      signedEncryptedSessionData
+      newSessionExpirationDate,
+      newSignedSessionData
     )
+    console.log({ newlyCreatedSessionTimeStamp: newSessionExpirationDate })
+    console.log({ newlyCreatedSession: newSession })
 
     return {
       user: newUser,
