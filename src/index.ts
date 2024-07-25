@@ -5,6 +5,11 @@ import globalRouter from './routes/globalRouter'
 import cookieParser from 'cookie-parser'
 
 dotenv.config()
+
+if (process.env.NODE_ENV === 'development') {
+  process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0'
+}
+
 ;(async () => {
   await AppDataSource.initialize()
   console.log('Connected to DB successfully.')
