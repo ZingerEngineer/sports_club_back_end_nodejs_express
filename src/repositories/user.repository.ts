@@ -18,6 +18,8 @@ export const userRepository = AppDataSource.getRepository(User).extend({
     try {
       return await userRepository.find({
         relations: {
+          tokens: true,
+          sessions: true,
           teamMembers: true,
           coach: true
         }
@@ -35,6 +37,8 @@ export const userRepository = AppDataSource.getRepository(User).extend({
           userId: id
         },
         relations: {
+          tokens: true,
+          sessions: true,
           teamMembers: true,
           coach: true
         }
@@ -49,7 +53,12 @@ export const userRepository = AppDataSource.getRepository(User).extend({
     try {
       return await userRepository.find({
         where: { firstName: firstName },
-        relations: { teamMembers: true, coach: true }
+        relations: {
+          tokens: true,
+          sessions: true,
+          teamMembers: true,
+          coach: true
+        }
       })
     } catch (error) {
       console.log(error)
@@ -60,7 +69,12 @@ export const userRepository = AppDataSource.getRepository(User).extend({
     try {
       return await userRepository.findOne({
         where: { email },
-        relations: { teamMembers: true, coach: true }
+        relations: {
+          tokens: true,
+          sessions: true,
+          teamMembers: true,
+          coach: true
+        }
       })
     } catch (error) {
       console.log(error)
@@ -72,7 +86,12 @@ export const userRepository = AppDataSource.getRepository(User).extend({
     try {
       return await userRepository.findOne({
         where: { phone },
-        relations: { teamMembers: true, coach: true }
+        relations: {
+          tokens: true,
+          sessions: true,
+          teamMembers: true,
+          coach: true
+        }
       })
     } catch (error) {
       console.log(error)
@@ -84,7 +103,12 @@ export const userRepository = AppDataSource.getRepository(User).extend({
     try {
       return await userRepository.find({
         where: { lastName: lastName },
-        relations: { teamMembers: true, coach: true }
+        relations: {
+          tokens: true,
+          sessions: true,
+          teamMembers: true,
+          coach: true
+        }
       })
     } catch (error) {
       console.log(error)
@@ -99,6 +123,8 @@ export const userRepository = AppDataSource.getRepository(User).extend({
           lastName: lastName
         },
         relations: {
+          tokens: true,
+          sessions: true,
           teamMembers: true,
           coach: true
         }
@@ -140,23 +166,6 @@ export const userRepository = AppDataSource.getRepository(User).extend({
         .delete()
         .from(User)
         .where('user.userId = :checkedId', { checkedId: id })
-        .execute()
-    } catch (error) {
-      console.log(error)
-      return null
-    }
-  },
-  async updateUserSessionId(id: number, session: Session) {
-    try {
-      const user = await userRepository.find({
-        where: { userId: id }
-      })
-      if (!user) return null
-      return await userRepository
-        .createQueryBuilder('user')
-        .update()
-        .set({ session: session })
-        .where('user.userId = :id', { id })
         .execute()
     } catch (error) {
       console.log(error)

@@ -13,15 +13,18 @@ export const tokenRepository = AppDataSource.getRepository(Token).extend({
     tokenUseTimes?: number
   ) {
     try {
-      if (!tokenUseTimes) tokenUseTimes = 1
       const tokenId = crypto.randomBytes(60).toString('hex')
       const tokenObject = {
         tokenId: tokenId,
         user: user,
-        expiresIn,
         tokenBody,
-        tokenType,
-        tokenUseTimes
+        tokenType
+      }
+      if (tokenUseTimes) {
+        tokenObject['tokenUseTimes'] = tokenUseTimes
+      }
+      if (expiresIn) {
+        tokenObject['expiresIn'] = expiresIn
       }
       const newToken = tokenRepository.create(tokenObject)
       return await tokenRepository.save(newToken)
