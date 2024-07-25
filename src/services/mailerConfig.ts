@@ -30,9 +30,8 @@ export const sendEmail = async (
       text,
       html
     }
-    const sendResults = await transporter.sendMail(mailOptions)
-    console.log(`Email sent:${sendResults}`)
+    return await transporter.sendMail(mailOptions)
   } catch (error) {
-    console.log(error)
+    throw new Error('Sending email failed')
   }
 }
