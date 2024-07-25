@@ -1,4 +1,10 @@
-import { Column, Entity, PrimaryGeneratedColumn, ManyToOne } from 'typeorm'
+import {
+  Column,
+  Entity,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  JoinColumn
+} from 'typeorm'
 import { User } from './User'
 import { Team } from './Team'
 
@@ -13,6 +19,9 @@ export class TeamMember {
     orphanedRowAction: 'soft-delete',
     nullable: false
   })
+  @JoinColumn({
+    name: 'userId'
+  })
   user: User
 
   @ManyToOne(() => Team, (team) => team.teamMembers, {
@@ -20,6 +29,9 @@ export class TeamMember {
     onDelete: 'CASCADE',
     orphanedRowAction: 'soft-delete',
     nullable: false
+  })
+  @JoinColumn({
+    name: 'teamId'
   })
   team: Team
 

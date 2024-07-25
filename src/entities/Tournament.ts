@@ -31,7 +31,7 @@ export class Tournament {
 
   @Column({
     type: 'datetime',
-    default: () => 'GETDATE()',
+    default: () => 'GETUTCDATE()',
     nullable: false
   })
   createdAt: string

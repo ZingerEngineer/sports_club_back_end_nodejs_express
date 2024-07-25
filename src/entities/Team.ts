@@ -6,7 +6,8 @@ import {
   ManyToMany,
   OneToOne,
   OneToMany,
-  DeleteDateColumn
+  DeleteDateColumn,
+  JoinColumn
 } from 'typeorm'
 import { Sport } from './Sport'
 import { Sponsor } from './Sponsor'
@@ -62,6 +63,9 @@ export class Team {
   matchesLost: number
 
   @ManyToOne(() => Sport, (sport) => sport.teams)
+  @JoinColumn({
+    name: 'sportId'
+  })
   sport: Sport
 
   @ManyToMany(() => Sponsor, (sponsors) => sponsors.teams)
@@ -81,7 +85,7 @@ export class Team {
 
   @Column({
     type: 'datetime',
-    default: () => 'GETDATE()',
+    default: () => 'GETUTCDATE()',
     nullable: false
   })
   createdAt: string

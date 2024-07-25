@@ -16,7 +16,8 @@ export class Token {
   user: User
 
   @Column({
-    type: 'varchar',
+    type: 'datetime',
+    default: () => 'DATEADD(MINUTE,60,GETUTCDATE())',
     nullable: false
   })
   expiresIn: string
@@ -24,13 +25,14 @@ export class Token {
   @Column({
     type: 'nvarchar',
     length: 'MAX',
+    default: '',
     nullable: false
   })
   tokenBody: string
 
   @Column({
     type: 'datetime',
-    default: () => 'GETDATE()',
+    default: () => 'GETUTCDATE()',
     nullable: false
   })
   createdAt: string

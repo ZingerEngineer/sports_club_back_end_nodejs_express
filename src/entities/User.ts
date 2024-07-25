@@ -25,23 +25,22 @@ export class User {
   userId: number
 
   @Column({
-    type: 'nvarchar',
-    length: 15,
+    type: 'int',
+    width: 1,
     default: UserRoles.USER,
     nullable: false
   })
   role: number
 
-  @OneToOne(() => Session, (session) => session.user, {
+  @OneToMany(() => Session, (sessions) => sessions.user, {
     cascade: true,
     onDelete: 'CASCADE',
-    orphanedRowAction: 'soft-delete',
-    nullable: false
+    orphanedRowAction: 'soft-delete'
   })
   @JoinColumn({
-    name: 'sessionId'
+    name: 'sessions'
   })
-  session: Session
+  sessions: Session[]
 
   @OneToMany(() => Token, (tokens) => tokens.user, {
     cascade: true,
@@ -50,12 +49,12 @@ export class User {
     nullable: false
   })
   @JoinColumn({
-    name: 'tokenId'
+    name: 'tokens'
   })
   tokens: Token[]
 
   @Column({
-    type: 'varchar',
+    type: 'nvarchar',
     length: 15,
     default: '',
     nullable: false
@@ -132,14 +131,20 @@ export class User {
   job: number
 
   @OneToMany(() => TeamMember, (teamMembers) => teamMembers.user)
+  @JoinColumn({
+    name: 'teamMemberId'
+  })
   teamMembers: TeamMember
 
   @OneToOne(() => Coach, (coach) => coach.user)
+  @JoinColumn({
+    name: 'coachId'
+  })
   coach: Coach
 
   @Column({
     type: 'datetime',
-    default: () => 'GETDATE()',
+    default: () => 'GETUTCDATE()',
     nullable: false
   })
   createdAt: string

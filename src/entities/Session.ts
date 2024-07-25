@@ -1,5 +1,13 @@
-import { Entity, Column, OneToOne, PrimaryColumn, JoinColumn } from 'typeorm'
+import {
+  Entity,
+  Column,
+  OneToOne,
+  PrimaryColumn,
+  JoinColumn,
+  ManyToOne
+} from 'typeorm'
 import { User } from './User'
+
 @Entity()
 export class Session {
   @PrimaryColumn({
@@ -8,17 +16,18 @@ export class Session {
   })
   sessionId: string
 
-  @OneToOne(() => User, (user) => user.session)
+  @ManyToOne(() => User, (user) => user.sessions)
   @JoinColumn({
     name: 'userId'
   })
   user: User
 
   @Column({
-    type: 'timestamp',
+    type: 'datetime',
+    default: () => 'DATEADD(MINUTE,60,GETUTCDATE())',
     nullable: false
   })
-  expiresAt: number
+  expiresAt: string
 
   @Column({
     type: 'nvarchar',
@@ -30,15 +39,14 @@ export class Session {
 
   @Column({
     type: 'datetime',
-    default: () => 'GETDATE()',
+    default: () => 'GETUTCDATE()',
     nullable: false
   })
   createdAt: string
 
   @Column({
     type: 'datetime',
-    default: '',
-    nullable: false
+    nullable: true
   })
   lastReplacedAt: string
 }

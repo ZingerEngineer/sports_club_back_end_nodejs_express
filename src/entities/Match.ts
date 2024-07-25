@@ -5,7 +5,8 @@ import {
   ManyToOne,
   ManyToMany,
   JoinTable,
-  DeleteDateColumn
+  DeleteDateColumn,
+  JoinColumn
 } from 'typeorm'
 import { Team } from './Team'
 import { Sport } from './Sport'
@@ -27,9 +28,15 @@ export class Match {
   type: number
 
   @ManyToOne(() => Sport, (sport) => sport.matches)
+  @JoinColumn({
+    name: 'sportId'
+  })
   sport: Sport
 
   @ManyToOne(() => Tournament, (tournament) => tournament.matches)
+  @JoinColumn({
+    name: 'tournamentId'
+  })
   tournament: Tournament
 
   @ManyToMany(() => Team, (team) => team.wonMatches)
@@ -62,7 +69,7 @@ export class Match {
 
   @Column({
     type: 'datetime',
-    default: () => 'GETDATE()',
+    default: () => 'GETUTCDATE()',
     nullable: false
   })
   createdAt: string
