@@ -1,6 +1,7 @@
 import { Request, Response } from 'express'
 import { login, signUp, logOut } from '../actions/auth'
 import { verifyEmail } from '../actions/auth'
+import { getJSIsoStringFromMssqlTimeStamp } from '../utils/generateIncomingUTCDate'
 
 type TLoginController = (req: Request, res: Response) => Promise<void>
 type TLogOutController = (req: Request, res: Response) => Promise<void>
@@ -52,18 +53,24 @@ const signUpController: TSignUpController = async (
       dob,
       job
     )
-    if (!session) throw new Error('Error happened')
+    if (!session) {
+      console.log(session)
+
+      throw new Error('Error happened')
+    }
+    console.log(session)
     res.cookie('sessionId', session.sessionId, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: session.expiresAt
+      maxAge: Date.parse(getJSIsoStringFromMssqlTimeStamp(session.expiresAt))
     })
     res.status(200).json({
       user,
       message: 'User registered successfully.'
     })
   } catch (error) {
+    console.log(error)
     res.status(400).json({ message: 'Signup failed.' })
   }
 }
