@@ -3,7 +3,6 @@ import { userRepository } from '../repositories/user.repository'
 import bcrypt from 'bcrypt'
 import dotenv from 'dotenv'
 import { sign, verify, decode } from 'jsonwebtoken'
-import { SignJWT, jwtDecrypt, JWTPayload, EncryptJWT, jwtVerify } from 'jose'
 import {
   UserGenders,
   UserJobs,
@@ -14,10 +13,7 @@ import { sessionRepository } from '../repositories/session.repository'
 import { sendEmail } from '../services/mailerConfig'
 import { tokenRepository } from '../repositories/token.repository'
 import { TokenTypes } from '../enums/token.enums'
-import {
-  addMinutesToDate,
-  getMssqlUTCTimeStamp
-} from '../utils/generateIncomingUTCDate'
+import { addMinutesToDate } from '../utils/addMinutesToDate'
 
 dotenv.config()
 
@@ -31,23 +27,20 @@ const signSessionData = async (sessionData: string): Promise<string> => {
 const sendVerificationLink = async (email: string) => {
   try {
     const user = await userRepository.findUserByEmail(email)
-    if (!user) throw new Error('Creating email verification failed due to user')
+    if (!user) throw new Error('User not found')
 
     const userVerificationToken = user.tokens.filter(
       (token) => token.tokenType === TokenTypes.VERIFYEMAIL
     )[0].tokenBody
-    if (!userVerificationToken)
-      throw new Error('Creating email verification failed')
+    if (!userVerificationToken) throw new Error('Token not found')
     const verifyUrl = `http://localhost/v1/verify/email?vt=${userVerificationToken}`
-    const res = await sendEmail(
+    await sendEmail(
       email,
       'Sports club email verification',
       `The following link is a one time link and is available for 3 minutes, carefully use it to validate your email: ${verifyUrl}.`
     )
-    console.log(res)
   } catch (error) {
-    console.log(error)
-    throw new Error('Creating email verification failed')
+    throw new Error('Verification email failed')
   }
 }
 
@@ -55,7 +48,7 @@ export const verifyEmail = async (userVerificationToken: string) => {
   try {
     let userId = ''
     let userEmail = ''
-    if (!userVerificationToken) throw new Error('Invaid token')
+    if (!userVerificationToken) throw new Error('Token not found')
     let tokenVerificationResults = verify(userVerificationToken, tokenSecret)
     if (!tokenVerificationResults) throw new Error('Invalid token')
 
@@ -90,9 +83,11 @@ const login = async (email: string, phone: string, password: string) => {
     const newSignedSessionData = await signSessionData(
       JSON.stringify({ status: UserLogStatus.LOGGEDIN })
     )
-    const newSessionExpirationDate = getMssqlUTCTimeStamp(
-      addMinutesToDate(new Date(), 24 * 60)
-    )
+    const newSessionExpirationDate = addMinutesToDate(
+      new Date(),
+      24 * 60
+    ).toISOString()
+
     const newSession = await sessionRepository.createSession(
       dbUser,
       newSessionExpirationDate,
@@ -114,9 +109,10 @@ const signUp = async (
   email: string,
   phone: string,
   password: string,
-  gender: UserGenders,
+  gender: number,
   dob: string,
-  job: UserJobs
+  job: number,
+  teamNameRelatingUserJob?: string
 ) => {
   try {
     let dbUser: User
@@ -138,7 +134,9 @@ const signUp = async (
       password,
       UserRoles.USER,
       dob,
-      job
+      job,
+      null,
+      teamNameRelatingUserJob
     )
 
     const verificationToken = sign(
@@ -155,7 +153,7 @@ const signUp = async (
 
     await tokenRepository.createToken(
       newUser,
-      getMssqlUTCTimeStamp(addMinutesToDate(new Date(), 3)),
+      addMinutesToDate(new Date(), 3).toISOString(),
       verificationToken,
       TokenTypes.VERIFYEMAIL,
       1
@@ -168,16 +166,16 @@ const signUp = async (
         status: UserLogStatus.LOGGEDIN
       })
     )
-    const newSessionExpirationDate = getMssqlUTCTimeStamp(
-      addMinutesToDate(new Date(), 60 * 24)
-    )
+    const newSessionExpirationDate = addMinutesToDate(
+      new Date(),
+      60 * 24
+    ).toISOString()
+
     const newSession = await sessionRepository.createSession(
       newUser,
       newSessionExpirationDate,
       newSignedSessionData
     )
-    console.log({ newlyCreatedSessionTimeStamp: newSessionExpirationDate })
-    console.log({ newlyCreatedSession: newSession })
 
     return {
       user: newUser,
