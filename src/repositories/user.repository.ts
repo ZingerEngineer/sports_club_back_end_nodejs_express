@@ -12,6 +12,85 @@ import {
   UserEmailVerificationState
 } from '../enums/user.enums'
 import { Session } from '../entities/Session'
+import { Team } from '../entities/Team'
+import { Repository, Entity, ObjectLiteral } from 'typeorm'
+import { TeamMember } from '../entities/TeamMember'
+import { Coach } from '../entities/Coach'
+
+interface UserData {
+  firstName: string
+  lastName: string
+  gender: number
+  email: string
+  phone: string
+  password: string
+  role: number
+  dob: string
+  age: number
+}
+
+const createJobUser = async (
+  job: number,
+  teamNameRelatingUserJob: string,
+  repoRelatingUserCreation: Repository<unknown>,
+  userData: UserData,
+  salary?: number
+): Promise<User> => {
+  const {
+    firstName,
+    lastName,
+    gender,
+    email,
+    phone,
+    password,
+    role,
+    dob,
+    age
+  } = userData
+
+  const checkedTeam = await teamRepository.findTeamByName(
+    teamNameRelatingUserJob
+  )
+  if (!checkedTeam) throw new Error('Invalid team name')
+  if (!salary) salary = 0
+  const newUser = userRepository.create({
+    firstName,
+    lastName,
+    gender,
+    email,
+    phone,
+    password,
+    role,
+    dob,
+    age,
+    job
+  })
+
+  const savedUser = await userRepository.save(newUser)
+
+  if (job === UserJobs.COACH) {
+    const newEntityRelatingUser = (
+      repoRelatingUserCreation as typeof coachRepository
+    ).create({
+      user: savedUser,
+      team: checkedTeam,
+      salary
+    })
+
+    await repoRelatingUserCreation.save(newEntityRelatingUser)
+  }
+  if (job === UserJobs.TEAMMEMBER) {
+    const newEntityRelatingUser = (
+      repoRelatingUserCreation as typeof teamMemberRepository
+    ).create({
+      user: savedUser,
+      team: checkedTeam,
+      salary
+    })
+    await repoRelatingUserCreation.save(newEntityRelatingUser)
+  }
+  return savedUser
+}
 
 export const userRepository = AppDataSource.getRepository(User).extend({
   async findUsers() {
@@ -175,72 +254,57 @@ export const userRepository = AppDataSource.getRepository(User).extend({
   async createUser(
     firstName: string,
     lastName: string,
-    gender: UserGenders,
+    gender: number,
     email: string,
     phone: string,
     password: string,
-    role: UserRoles,
+    role: number,
     dob: string,
-    job?: UserJobs,
+    job?: number,
     salary?: number,
-    teamToCoach?: string,
-    teamToJoin?: string
+    teamNameRelatingUserJob?: string
   ) {
+    let user: User
     const ageToUse = new Date().getFullYear() - parseInt(dob.split('-')[0])
-    if (salary) {
-      if (job === UserJobs.COACH) {
-        let checkedTeamToCoach = await teamRepository.findTeamByName(
-          teamToCoach
+
+    if (teamNameRelatingUserJob) {
+      if (job === UserJobs.COACH)
+        user = await createJobUser(
+          job,
+          teamNameRelatingUserJob,
+          coachRepository,
+          {
+            firstName: firstName,
+            lastName: lastName,
+            gender: gender,
+            email: email,
+            phone: phone,
+            password: password,
+            role: role,
+            dob: dob,
+            age: ageToUse
+          }
         )
-        if (!checkedTeamToCoach) return null
-
-        const newUser = userRepository.create({
-          firstName: firstName,
-          lastName: lastName,
-          gender: gender,
-          email: email,
-          phone: phone,
-          password: password,
-          role: role,
-          dob: dob,
-          age: ageToUse,
-          job: job
-        })
-
-        const savedUser = await userRepository.save(newUser)
-
-        const newCoach = coachRepository.create({
-          user: savedUser,
-          team: checkedTeamToCoach,
-          salary: salary
-        })
-        await coachRepository.save(newCoach)
-      }
       if (job === UserJobs.TEAMMEMBER) {
-        let checkedTeamToJoin = await teamRepository.findTeamByName(teamToJoin)
-        if (!checkedTeamToJoin) return null
-
-        const newUser = userRepository.create({
-          firstName: firstName,
-          lastName: lastName,
-          gender: gender,
-          email: email,
-          phone: phone,
-          password: password,
-          role: role,
-          dob: dob,
-          age: ageToUse,
-          job: job
-        })
-        const savedUser = await userRepository.save(newUser)
-        const newTeamMember = teamMemberRepository.create({
-          user: savedUser,
-          salary: salary,
-          team: checkedTeamToJoin
-        })
-        await teamMemberRepository.save(newTeamMember)
+        user = await createJobUser(
+          job,
+          teamNameRelatingUserJob,
+          teamMemberRepository,
+          {
+            firstName: firstName,
+            lastName: lastName,
+            gender: gender,
+            email: email,
+            phone: phone,
+            password: password,
+            role: role,
+            dob: dob,
+            age: ageToUse
+          }
+        )
       }
     }
+
     const newUser = userRepository.create({
       firstName: firstName,
       lastName: lastName,
@@ -253,7 +317,8 @@ export const userRepository = AppDataSource.getRepository(User).extend({
       age: ageToUse,
       job: UserJobs.GUEST
     })
-    return await userRepository.save(newUser)
+    user = await userRepository.save(newUser)
+    return user
   },
   async makeUserEmailVertified(userId: string, userEmail: string) {
     userRepository
