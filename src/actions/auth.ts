@@ -124,7 +124,6 @@ const signUp = async (
     if (dbUser) {
       throw new Error('Signup failed')
     }
-
     const newUser = await userRepository.createUser(
       firstName,
       lastName,

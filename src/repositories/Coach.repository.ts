@@ -4,67 +4,55 @@ import { checkIdValidity } from '../utils/checkIdValidity'
 
 export const coachRepository = AppDataSource.getRepository(Coach).extend({
   async coaches() {
-    return coachRepository
-      .createQueryBuilder('coach')
-      .innerJoinAndSelect('coach.user', 'user')
-      .innerJoinAndSelect('coach.team', 'team')
-      .select([
-        'coach.coachId',
-        'user.userId',
-        'user.role',
-        'user.firstName',
-        'user.lastName',
-        'user.dob',
-        'user.age',
-        'user.job',
-        'user.isDeleted',
-        'team.teamId',
-        'team.teamName'
-      ])
-      .getMany()
+    try {
+      return await coachRepository.find({
+        relations: {
+          user: true,
+          team: true
+        }
+      })
+    } catch (error) {
+      throw new Error('error happened')
+    }
   },
 
   async findCoachById(id: number) {
-    return await coachRepository
-      .createQueryBuilder('coach')
-      .innerJoinAndSelect('coach.user', 'user')
-      .innerJoinAndSelect('coach.team', 'team')
-      .select([
-        'coach.coachId',
-        'user.userId',
-        'user.role',
-        'user.firstName',
-        'user.lastName',
-        'user.dob',
-        'user.age',
-        'user.job',
-        'user.isDeleted',
-        'team.teamId',
-        'team.teamName'
-      ])
-      .where('coach.coachId = :checkedId', { id })
-      .getOne()
+    try {
+      return await coachRepository.findOne({
+        where: { coachId: id },
+        relations: {
+          user: true,
+          team: true
+        }
+      })
+    } catch (error) {
+      throw new Error('finding coach failed')
+    }
   },
   async findCoachByFirstName(firstName: string) {
-    return await coachRepository
-      .createQueryBuilder('coach')
-      .innerJoinAndSelect('coach.user', 'user')
-      .innerJoinAndSelect('coach.team', 'team')
-      .select([
-        'coach.coachId',
-        'user.userId',
-        'user.role',
-        'user.firstName',
-        'user.lastName',
-        'user.dob',
-        'user.age',
-        'user.job',
-        'user.isDeleted',
-        'team.teamId',
-        'team.teamName'
-      ])
-      .where('user.firstName = :firstName', { firstName })
-      .getMany()
+    try {
+      return await coachRepository
+        .createQueryBuilder('coach')
+        .innerJoin('coach.user', 'user')
+        .innerJoin('coach.team', 'team')
+        .select([
+          'coach.coachId',
+          'user.userId',
+          'user.role',
+          'user.firstName',
+          'user.lastName',
+          'user.dob',
+          'user.age',
+          'user.job',
+          'user.isDeleted',
+          'team.teamId',
+          'team.teamName'
+        ])
+        .where('user.firstName = :firstName', { firstName })
+        .getMany()
+    } catch (error) {
+      throw new Error('finding coaches failed')
+    }
   },
   async findCoachByLastName(lastName: string) {
     return await coachRepository

@@ -1,89 +1,108 @@
 import { AppDataSource } from '../services/data-source'
 import { Team } from '../entities/Team'
 import { IsDeleted } from '../enums/globalEnums'
-import { checkIdValidity } from '../utils/checkIdValidity'
 
 export const teamRepository = AppDataSource.getRepository(Team).extend({
   async findTeamById(id: number) {
     try {
-      const team = await teamRepository
-        .createQueryBuilder('team')
-        .innerJoin('team.coach', 'coach')
-        .innerJoin('team.sport', 'sport')
-        .innerJoin('team.sponsor', 'sponsor')
-
-        .select([
-          'team.teamId',
-          'team.teamName',
-          'team.teamType',
-          'team.belowAge',
-          'team.matchesWon',
-          'team.matchesLost',
-          'coach.coachId',
-          'sport.sportId',
-          'sponsor.sponsorId',
-          'team.isDeleted'
-        ])
-        .where('team.teamId = :teamId', { teamId: id })
-        .getOne()
+      const team = await teamRepository.findOne({
+        where: {
+          teamId: id
+        },
+        relations: {
+          sport: true,
+          sponsors: true,
+          teamMembers: true,
+          coach: true,
+          wonMatches: true,
+          lostMatches: true
+        }
+      })
       return team
     } catch (error) {
-      console.log(error)
-      return null
+      throw new Error("Team doesn't exist")
     }
   },
-  async findTeamByName(teamName: string) {
+  async findTeamByName(name: string) {
     try {
-      const team = await teamRepository
-        .createQueryBuilder('team')
-        .innerJoin('team.coach', 'team')
-        .innerJoin('team.sport', 'team')
-        .innerJoin('team.sponsor', 'team')
-
-        .select([
-          'team.teamId',
-          'team.teamName',
-          'team.team_type',
-          'team.below_age',
-          'team.matches_won',
-          'team.matches_lost',
-          'coach.coach_id',
-          'sport.sport_id',
-          'sponsor.sponsor_id',
-          'team.is_deleted'
-        ])
-        .where('team.teamName = :teamName', { teamName: teamName })
-        .getOne()
+      const team = await teamRepository.findOne({
+        where: {
+          teamName: name
+        },
+        relations: {
+          sport: true,
+          sponsors: true,
+          teamMembers: true,
+          coach: true,
+          wonMatches: true,
+          lostMatches: true
+        }
+      })
       return team
     } catch (error) {
-      console.log(error)
-      return null
+      throw new Error("team doesn't exist")
     }
   },
   async softDeleteTeamById(id: number) {
-    const team = await teamRepository.findTeamById(id)
-    if (!team) return null
-    return await teamRepository
-      .createQueryBuilder('team')
-      .update(Team)
-      .set({
-        isDeleted: IsDeleted.DELETED,
-        deletedAt: () => 'GETDATE()'
-      })
-      .where('team.teamId = :teamId', { teamId: id })
-      .execute()
+    try {
+      const team = await teamRepository.findOne({ where: { teamId: id } })
+      if (!team) return null
+      return await teamRepository
+        .createQueryBuilder('team')
+        .update(Team)
+        .set({
+          isDeleted: IsDeleted.DELETED,
+          deletedAt: () => 'GETUTCDATE()'
+        })
+        .where('team.teamId = :teamId', { teamId: id })
+        .execute()
+    } catch (error) {
+      throw new Error('team soft deletion failed')
+    }
   },
-  async softDeleteTeamByName(teamName: string) {
-    const team = await teamRepository.findTeamByName(teamName)
-    if (!team) return null
-    return await teamRepository
-      .createQueryBuilder('team')
-      .update(Team)
-      .set({
-        isDeleted: IsDeleted.DELETED,
-        deletedAt: () => 'GETDATE()'
-      })
-      .where('team.teamName = :teamName', { teamName: teamName })
-      .execute()
+  async softDeleteTeamByName(name: string) {
+    try {
+      const team = await teamRepository.findOne({ where: { teamName: name } })
+      if (!team) throw new Error("team doesn't exist")
+      return await teamRepository
+        .createQueryBuilder('team')
+        .update(Team)
+        .set({
+          isDeleted: IsDeleted.DELETED,
+          deletedAt: () => 'GETUTCDATE()'
+        })
+        .where('team.teamName = :teamName', { teamName: name })
+        .execute()
+    } catch (error) {
+      throw new Error('team soft deletion failed')
+    }
+  },
+  async hardDeleteTeamById(id: number) {
+    try {
+      const team = await teamRepository.findOne({ where: { teamId: id } })
+      if (!team) throw new Error("team doesn't exist")
+      return await teamRepository
+        .createQueryBuilder('team')
+        .delete()
+        .from(Team)
+        .where('team.teamId = :teamId', { teamId: id })
+        .execute()
+    } catch (error) {
+      throw new Error('team hard deletion failed')
+    }
+  },
+  async hardDeleteTeamByName(name: string) {
+    try {
+      const team = await teamRepository.findOne({ where: { teamName: name } })
+      if (!team) return null
+      return await teamRepository
+        .createQueryBuilder('team')
+        .delete()
+        .from(Team)
+        .where('team.teamName = :teamName', { teamName: name })
+        .execute()
+    } catch (error) {
+      throw new Error('team soft deletion failed')
+    }
   }
 })

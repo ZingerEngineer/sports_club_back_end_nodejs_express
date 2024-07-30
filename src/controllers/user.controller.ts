@@ -39,8 +39,17 @@ const signUpController: TSignUpController = async (
   res: Response
 ) => {
   try {
-    const { firstName, lastName, email, phone, password, gender, dob, job } =
-      req.body
+    const {
+      firstName,
+      lastName,
+      email,
+      phone,
+      password,
+      gender,
+      dob,
+      job,
+      teamNameRelatingUserJob
+    } = req.body
 
     const { user, session } = await signUp(
       firstName,
@@ -50,14 +59,12 @@ const signUpController: TSignUpController = async (
       password,
       gender,
       dob,
-      job
+      job,
+      teamNameRelatingUserJob
     )
     if (!session) {
-      console.log(session)
-
       throw new Error('Error happened')
     }
-    console.log(session)
     res.cookie('sessionId', session.sessionId, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -79,7 +86,7 @@ const logOutController: TLogOutController = async (req, res) => {
     if (!userId) res.status(400).json({ message: 'Error happened.' })
     await logOut(userId)
   } catch (error) {
-    console.log(error)
+    res.status(400).json({ message: 'Logout failed.' })
     return null
   }
 }
@@ -91,7 +98,6 @@ const verifyEmailController: TVerifyEmailController = async (req, res) => {
 
     if (typeof token === 'string') await verifyEmail(token)
   } catch (error) {
-    console.log(error)
     res.status(400).json({ message: 'Verification failed.' })
   }
 }

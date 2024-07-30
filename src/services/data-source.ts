@@ -2,9 +2,7 @@ import 'reflect-metadata'
 import { DataSource } from 'typeorm'
 import dotenv from 'dotenv'
 
-dotenv.config({
-  path: 'src/.env'
-})
+dotenv.config()
 const database = process.env.DB_NAME_SECRET
 const username = process.env.DB_USER_NAME_SECRET
 const password = process.env.DB_USER_PASS_SECRET
@@ -19,8 +17,8 @@ export const AppDataSource = new DataSource({
   database,
   synchronize: false,
   logging: false,
-  entities: ['./src/entities/*{.ts,.js}'],
-  migrations: ['./src/migrations/*{.ts,.js}'],
+  entities: ['src/entities/*{.ts,.js}'],
+  migrations: ['src/migrations/*{.ts,.js}'],
   subscribers: [],
   extra: {
     trustServerCertificate: true

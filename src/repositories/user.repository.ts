@@ -51,6 +51,7 @@ const createJobUser = async (
   const checkedTeam = await teamRepository.findTeamByName(
     teamNameRelatingUserJob
   )
+  console.log(checkedTeam)
   if (!checkedTeam) throw new Error('Invalid team name')
   if (!salary) salary = 0
   const newUser = userRepository.create({
@@ -303,21 +304,21 @@ export const userRepository = AppDataSource.getRepository(User).extend({
           }
         )
       }
+    } else {
+      user = userRepository.create({
+        firstName: firstName,
+        lastName: lastName,
+        gender: gender,
+        email: email,
+        phone: phone,
+        password: password,
+        role: role,
+        dob: dob,
+        age: ageToUse,
+        job: UserJobs.GUEST
+      })
     }
-
-    const newUser = userRepository.create({
-      firstName: firstName,
-      lastName: lastName,
-      gender: gender,
-      email: email,
-      phone: phone,
-      password: password,
-      role: role,
-      dob: dob,
-      age: ageToUse,
-      job: UserJobs.GUEST
-    })
-    user = await userRepository.save(newUser)
+    user = await userRepository.save(user)
     return user
   },
   async makeUserEmailVertified(userId: string, userEmail: string) {
