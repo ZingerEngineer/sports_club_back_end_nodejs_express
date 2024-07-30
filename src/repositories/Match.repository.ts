@@ -1,35 +1,23 @@
 import { AppDataSource } from '../services/data-source'
 import { Match } from '../entities/Match'
 import { IsDeleted } from '../enums/globalEnums'
-import { checkIdValidity } from '../utils/checkIdValidity'
 import { MatchType } from '../enums/match.enums'
 import { Sport } from '../entities/Sport'
 import { Tournament } from '../entities/Tournament'
 
 export const matchRepository = AppDataSource.getRepository(Match).extend({
-  async findMatches(isDeleted?: number) {
+  async findMatches() {
     try {
-      return await matchRepository
-        .createQueryBuilder('match')
-        .innerJoin('match.sport', 'sport')
-        .innerJoin('match.tournament', 'tournament')
-        .innerJoin('match.wonTeams', 'team')
-        .innerJoin('match.lostTeams', 'team')
-        .select([
-          'match.matchId',
-          'match.type',
-          'match.wonTeams',
-          'match.lostTeams',
-          'sport.sportId',
-          'tournament.tournamentId',
-          'tournament.tournamentName',
-          'sponsor.sponsorId',
-          'sponsor.brandName'
-        ])
-        .getMany()
+      return await matchRepository.find({
+        relations: {
+          sport: true,
+          tournament: true,
+          wonTeams: true,
+          lostTeams: true
+        }
+      })
     } catch (error) {
-      console.log(error)
-      return null
+      throw new Error('error happened')
     }
   },
 

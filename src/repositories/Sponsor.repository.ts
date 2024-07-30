@@ -5,20 +5,12 @@ import { IsDeleted } from '../enums/globalEnums'
 export const sponsorRepository = AppDataSource.getRepository(Sponsor).extend({
   async findSponsors() {
     try {
-      return await sponsorRepository
-        .createQueryBuilder('sponsor')
-        .innerJoin('sponsor.team', 'team')
-        .innerJoin('sponsor.tournament', 'tournament')
-        .select([
-          'sponsor.sponsorId',
-          'sponsor.name',
-          'sponsor.isDeleted',
-          'team.teamId',
-          'team.teamName',
-          'tournament.tournamentId',
-          'tournament.tournamentName'
-        ])
-        .getMany()
+      return await sponsorRepository.find({
+        relations: {
+          teams: true,
+          tournaments: true
+        }
+      })
     } catch (error) {
       console.log(error)
       return null
@@ -27,22 +19,13 @@ export const sponsorRepository = AppDataSource.getRepository(Sponsor).extend({
 
   async findSponsorById(id: number) {
     try {
-      const sponsor = await sponsorRepository
-        .createQueryBuilder('sponsor')
-        .innerJoin('sponsor.team', 'team')
-        .innerJoin('sponsor.tournament', 'tournament')
-        .select([
-          'sponsor.sponsorId',
-          'sponsor.name',
-          'sponsor.isDeleted',
-          'team.teamId',
-          'team.teamName',
-          'tournament.tournamentId',
-          'tournament.tournamentName'
-        ])
-        .where('sponsor.sponsorId = :sponsId', { sponsId: id })
-        .getOne()
-      return sponsor
+      return await sponsorRepository.findOne({
+        where: { sponsorId: id },
+        relations: {
+          teams: true,
+          tournaments: true
+        }
+      })
     } catch (error) {
       console.log(error)
       return null
@@ -50,22 +33,13 @@ export const sponsorRepository = AppDataSource.getRepository(Sponsor).extend({
   },
   async findSponsorByName(name: string) {
     try {
-      const sponsor = await sponsorRepository
-        .createQueryBuilder('sponsor')
-        .innerJoin('sponsor.team', 'team')
-        .innerJoin('sponsor.tournament', 'tournament')
-        .select([
-          'sponsor.sponsorId',
-          'sponsor.name',
-          'sponsor.isDeleted',
-          'team.teamId',
-          'team.teamName',
-          'tournament.tournamentId',
-          'tournament.tournamentName'
-        ])
-        .where('sponsor.name = :name', { name })
-        .getOne()
-      return sponsor
+      return await sponsorRepository.find({
+        where: { name: name },
+        relations: {
+          teams: true,
+          tournaments: true
+        }
+      })
     } catch (error) {
       console.log(error)
       return null
@@ -73,44 +47,50 @@ export const sponsorRepository = AppDataSource.getRepository(Sponsor).extend({
   },
   async softDeleteSponsorById(id: number) {
     try {
-      const sponsor = await sponsorRepository.findSponsorById(id)
-      if (!sponsor) return null
+      const sponsor = await sponsorRepository.findOne({
+        where: { sponsorId: id }
+      })
+      if (!sponsor) throw new Error("sponsor doesn't exist")
       return await sponsorRepository
         .createQueryBuilder('sponsor')
         .update(Sponsor)
         .set({
           isDeleted: IsDeleted.DELETED,
-          deletedAt: () => 'GETDATE()'
+          deletedAt: () => 'GETUTCDATE()'
         })
         .where('sponsor.sponsorId = :sponsId', { sponsId: id })
         .execute()
     } catch (error) {
       console.log(error)
-      return null
+      throw new Error('session soft deletion failed')
     }
   },
   async softDeleteSponsorByName(name: string) {
     try {
-      const sponsor = await sponsorRepository.findSponsorByName(name)
+      const sponsor = await sponsorRepository.findOne({
+        where: { name: name }
+      })
       if (!sponsor) return null
       return await sponsorRepository
         .createQueryBuilder('sponsor')
         .update(Sponsor)
         .set({
           isDeleted: IsDeleted.DELETED,
-          deletedAt: () => 'GETDATE()'
+          deletedAt: () => 'GETUTCDATE()'
         })
         .where('sponsor.name = :name', { name: name })
         .execute()
     } catch (error) {
       console.log(error)
-      return null
+      throw new Error('session soft deletion failed')
     }
   },
 
   async hardDeleteSponsorById(id: number) {
     try {
-      const sponsor = await sponsorRepository.findSponsorById(id)
+      const sponsor = await sponsorRepository.findOne({
+        where: { sponsorId: id }
+      })
       if (!sponsor) return null
       return await sponsorRepository
         .createQueryBuilder('sponsor')
@@ -120,12 +100,15 @@ export const sponsorRepository = AppDataSource.getRepository(Sponsor).extend({
         .execute()
     } catch (error) {
       console.log(error)
+      throw new Error('session hard deletion failed')
     }
   },
 
   async hardDeleteSponsorByName(name: string) {
     try {
-      const sponsor = await sponsorRepository.findSponsorByName(name)
+      const sponsor = await sponsorRepository.findOne({
+        where: { name: name }
+      })
       if (!sponsor) return null
       return await sponsorRepository
         .createQueryBuilder('sponsor')
@@ -135,6 +118,7 @@ export const sponsorRepository = AppDataSource.getRepository(Sponsor).extend({
         .execute()
     } catch (error) {
       console.log(error)
+      throw new Error('session hard deletion failed')
     }
   },
 

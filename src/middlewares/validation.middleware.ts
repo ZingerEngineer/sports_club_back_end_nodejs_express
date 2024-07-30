@@ -5,12 +5,9 @@ const validate = async (schema: ZodSchema, data: any) => {
   try {
     const checkRes = await schema.safeParseAsync(data)
     if (checkRes.error) {
-      console.log(checkRes.error)
       throw new Error('Validation Error')
     }
   } catch (error) {
-    console.log(error)
-
     throw new Error('Validation Error')
   }
 }
