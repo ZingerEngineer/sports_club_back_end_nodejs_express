@@ -75,6 +75,9 @@ export class Team {
   teamMembers: TeamMember[]
 
   @OneToOne(() => Coach, (coach) => coach.team)
+  @JoinColumn({
+    name: 'coachId'
+  })
   coach: Coach
 
   @ManyToMany(() => Match, (matches) => matches.wonTeams)
