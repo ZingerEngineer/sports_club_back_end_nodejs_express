@@ -3,6 +3,7 @@ import { test } from '../controllers/test.controller'
 import {
   loginController,
   signUpController,
+  signUpWithGoogleController,
   verifyEmailController
 } from '../controllers/user.controller'
 import { validationMiddleWare } from '../middlewares/validation.middleware'
@@ -31,4 +32,5 @@ publicRouter.post(
 
 publicRouter.post('/verify/email', authorization, verifyEmailController)
 
+publicRouter.get('/api/sessions/OAuth/google', signUpWithGoogleController)
 export default publicRouter

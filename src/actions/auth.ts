@@ -4,6 +4,7 @@ import bcrypt from 'bcrypt'
 import dotenv from 'dotenv'
 import { sign, verify, decode } from 'jsonwebtoken'
 import {
+  UserEmailVerificationState,
   UserGenders,
   UserJobs,
   UserLogStatus,
@@ -14,6 +15,14 @@ import { sendEmail } from '../services/mailerConfig'
 import { tokenRepository } from '../repositories/token.repository'
 import { TokenTypes } from '../enums/token.enums'
 import { addMinutesToDate } from '../utils/addMinutesToDate'
+import axios from 'axios'
+import {
+  getGoogleOAuthTokens,
+  getGoogleUser
+} from '../services/google.oauth.services'
+import { userInfo } from 'os'
+import { Token } from '../entities/Token'
+import { Session } from 'inspector'
 
 dotenv.config()
 
@@ -197,6 +206,85 @@ const logOut = async (id: number) => {
   }
 }
 
-const signInWithGoogle = async () => {}
+const signUpWithGoogle = async (code: string) => {
+  try {
+    const { id_token, access_token } = await getGoogleOAuthTokens(code)
+    if (!id_token || !access_token)
+      throw new Error('missing user authentication credentials')
+    const googleUserInfo = await getGoogleUser(id_token, access_token)
+    if (!googleUserInfo) throw new Error('user credentials missing')
 
-export { signUp, login, logOut }
+    const user = await userRepository.findUserByEmail(googleUserInfo.email)
+    if (user) throw new Error('user already exists')
+    let newGoogleUser: User
+    if (googleUserInfo.verified_email) {
+      newGoogleUser = userRepository.create({
+        firstName: googleUserInfo.given_name,
+        lastName: googleUserInfo.family_name,
+        userGoogleId: googleUserInfo.id,
+        profilePicture: googleUserInfo.picture,
+        emailVerified: UserEmailVerificationState.VERIFIED
+      })
+    } else {
+      newGoogleUser = userRepository.create({
+        firstName: googleUserInfo.given_name,
+        lastName: googleUserInfo.family_name,
+        userGoogleId: googleUserInfo.id,
+        profilePicture: googleUserInfo.picture,
+        emailVerified: UserEmailVerificationState.UNVERIFIED
+      })
+
+      const verificationToken = sign(
+        {
+          userId: newGoogleUser.userId,
+          userRole: newGoogleUser.role,
+          userEmail: newGoogleUser.email
+        },
+        tokenSecret,
+        {
+          expiresIn: '3m'
+        }
+      )
+
+      await tokenRepository.createToken(
+        newGoogleUser,
+        addMinutesToDate(new Date(), 3).toISOString(),
+        verificationToken,
+        TokenTypes.VERIFYEMAIL,
+        1
+      )
+
+      await sendVerificationLink(newGoogleUser.email)
+    }
+    const savedUser = await userRepository.save(newGoogleUser)
+
+    const newGoogleAccessToken = tokenRepository.create({
+      expiresIn: addMinutesToDate(new Date(), 24 * 60).toISOString(),
+      tokenBody: sign({ ...newGoogleUser }, tokenSecret),
+      tokenType: TokenTypes.GOOGLEACCESS,
+      user: savedUser
+    })
+    const savedNewGoogleAccessToken = await tokenRepository.save(
+      newGoogleAccessToken
+    )
+
+    const newGoogleSession = sessionRepository.create({
+      expiresAt: addMinutesToDate(new Date(), 24 * 60).toISOString(),
+      data: JSON.stringify({
+        LogStatus: UserLogStatus.LOGGEDIN,
+        googleUser: googleUserInfo
+      }),
+      user: savedUser
+    })
+    const savedNewGoogleSession = await sessionRepository.save(newGoogleSession)
+
+    return {
+      accessToken: savedNewGoogleAccessToken,
+      session: savedNewGoogleSession
+    }
+  } catch (error) {
+    throw new Error('signup with google failed')
+  }
+}
+
+export { signUp, login, logOut, getGoogleUser, signUpWithGoogle }

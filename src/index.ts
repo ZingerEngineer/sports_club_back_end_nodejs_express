@@ -4,7 +4,9 @@ import { AppDataSource } from './services/data-source'
 import globalRouter from './routes/globalRouter'
 import cookieParser from 'cookie-parser'
 
-dotenv.config()
+dotenv.config({
+  path: 'src/.env'
+})
 
 if (process.env.NODE_ENV === 'development') {
   process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0'

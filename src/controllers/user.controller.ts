@@ -1,11 +1,22 @@
 import { Request, Response } from 'express'
-import { login, signUp, logOut } from '../actions/auth'
+import {
+  login,
+  signUp,
+  logOut,
+  getGoogleUser,
+  signUpWithGoogle
+} from '../actions/auth'
 import { verifyEmail } from '../actions/auth'
+import { getGoogleOAuthTokens } from '../services/google.oauth.services'
 
 type TLoginController = (req: Request, res: Response) => Promise<void>
 type TLogOutController = (req: Request, res: Response) => Promise<void>
 type TSignUpController = (req: Request, res: Response) => Promise<void>
 type TVerifyEmailController = (req: Request, res: Response) => Promise<void>
+type TSignUpWithGoogleController = (
+  req: Request,
+  res: Response
+) => Promise<void>
 
 const loginController: TLoginController = async (req, res) => {
   try {
@@ -102,9 +113,31 @@ const verifyEmailController: TVerifyEmailController = async (req, res) => {
   }
 }
 
+const signUpWithGoogleController: TSignUpWithGoogleController = async (
+  req,
+  res
+) => {
+  try {
+    const code = req.query.code as string
+    if (!code) res.status(403).json({ message: 'google code missing' })
+    const { accessToken, session } = await signUpWithGoogle(code)
+    if (!accessToken || !session) throw new Error('signup with google failed')
+    res.cookie('googleSession', session.sessionId, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: Date.parse(session.expiresAt)
+    })
+    res.status(200).json({ accessToken })
+  } catch (error) {
+    res.status(400).json({ message: 'Google OAuth2 failed', error })
+  }
+}
+
 export {
   loginController,
   signUpController,
   logOutController,
-  verifyEmailController
+  verifyEmailController,
+  signUpWithGoogleController
 }

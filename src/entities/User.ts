@@ -25,6 +25,19 @@ export class User {
   userId: number
 
   @Column({
+    type: 'nvarchar',
+    nullable: true,
+    length: 100
+  })
+  userGoogleId: string
+
+  @Column({
+    type: 'nvarchar',
+    nullable: true
+  })
+  profilePicture: string
+
+  @Column({
     type: 'int',
     width: 1,
     default: UserRoles.USER,
@@ -162,4 +175,3 @@ export class User {
   })
   deletedAt: string
 }
-
