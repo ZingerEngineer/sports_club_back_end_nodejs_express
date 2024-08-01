@@ -34,11 +34,16 @@ const loginController: TLoginController = async (req, res) => {
         .status(400)
         .json({ message: 'Login failed.', reason: 'A password is required.' })
 
-    const { user, session } = await login(email, phone, password)
+    const { user, accessToken } = await login(email, phone, password)
+    res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      sameSite: true,
+      signed: true,
+      maxAge: 60 * 24 * 60 * 60 * 1000
+    })
     res.status(200).json({
       message: 'User logged in successfully.',
-      user,
-      session
+      user
     })
   } catch (error) {
     res.status(400).json({ message: 'Login failed.' })
@@ -62,7 +67,7 @@ const signUpController: TSignUpController = async (
       teamNameRelatingUserJob
     } = req.body
 
-    const { user, session } = await signUp(
+    const { user, accessToken, verificationToken } = await signUp(
       firstName,
       lastName,
       email,
@@ -73,14 +78,17 @@ const signUpController: TSignUpController = async (
       job,
       teamNameRelatingUserJob
     )
-    if (!session) {
-      throw new Error('Error happened')
-    }
-    res.cookie('sessionId', session.sessionId, {
+    res.cookie('accessToken', accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: Date.parse(session.expiresAt)
+      sameSite: true,
+      signed: true,
+      maxAge: 60 * 24 * 60 * 60 * 1000
+    })
+    res.cookie('verificationToken', verificationToken, {
+      httpOnly: true,
+      sameSite: true,
+      signed: true,
+      maxAge: 5 * 60 * 1000
     })
     res.status(200).json({
       user,
@@ -94,20 +102,18 @@ const signUpController: TSignUpController = async (
 const logOutController: TLogOutController = async (req, res) => {
   try {
     const userId = req.body.id
-    if (!userId) res.status(400).json({ message: 'Error happened.' })
-    await logOut(userId)
+    const accessToken = req.cookies.accessToken
+    await logOut(userId, accessToken)
+    res.status(200).json({ message: 'Logged out successfully' })
   } catch (error) {
     res.status(400).json({ message: 'Logout failed.' })
-    return null
   }
 }
 
 const verifyEmailController: TVerifyEmailController = async (req, res) => {
   try {
-    const { token } = req.headers
-    if (token) res.status(400).json({ message: 'Verification failed.' })
-
-    if (typeof token === 'string') await verifyEmail(token)
+    const { verificationToken } = req.cookies
+    await verifyEmail(verificationToken)
   } catch (error) {
     res.status(400).json({ message: 'Verification failed.' })
   }
@@ -120,17 +126,26 @@ const signUpWithGoogleController: TSignUpWithGoogleController = async (
   try {
     const code = req.query.code as string
     if (!code) res.status(403).json({ message: 'google code missing' })
-    const { accessToken, session } = await signUpWithGoogle(code)
-    if (!accessToken || !session) throw new Error('signup with google failed')
-    res.cookie('googleSession', session.sessionId, {
+    const { user, accessToken, verificationToken } = await signUpWithGoogle(
+      code
+    )
+
+    res.cookie('accessToken', accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: Date.parse(session.expiresAt)
+      sameSite: true,
+      signed: true,
+      maxAge: 60 * 24 * 60 * 60 * 1000
     })
-    res.status(200).json({ accessToken })
+    res.cookie('verificationToken', verificationToken, {
+      httpOnly: true,
+      sameSite: true,
+      signed: true,
+      maxAge: 5 * 60 * 1000
+    })
+
+    res.status(200).json({ user })
   } catch (error) {
-    res.status(400).json({ message: 'Google OAuth2 failed', error })
+    res.status(400).json({ message: 'google signup failed' })
   }
 }
 

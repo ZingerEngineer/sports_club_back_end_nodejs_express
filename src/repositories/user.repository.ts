@@ -11,11 +11,7 @@ import {
   UserGenders,
   UserEmailVerificationState
 } from '../enums/user.enums'
-import { Session } from '../entities/Session'
-import { Team } from '../entities/Team'
-import { Repository, Entity, ObjectLiteral } from 'typeorm'
-import { TeamMember } from '../entities/TeamMember'
-import { Coach } from '../entities/Coach'
+import { Repository } from 'typeorm'
 
 interface UserData {
   firstName: string
@@ -99,7 +95,6 @@ export const userRepository = AppDataSource.getRepository(User).extend({
       return await userRepository.find({
         relations: {
           tokens: true,
-          sessions: true,
           teamMembers: true,
           coach: true
         }
@@ -118,7 +113,6 @@ export const userRepository = AppDataSource.getRepository(User).extend({
         },
         relations: {
           tokens: true,
-          sessions: true,
           teamMembers: true,
           coach: true
         }
@@ -135,7 +129,6 @@ export const userRepository = AppDataSource.getRepository(User).extend({
         where: { firstName: firstName },
         relations: {
           tokens: true,
-          sessions: true,
           teamMembers: true,
           coach: true
         }
@@ -151,7 +144,6 @@ export const userRepository = AppDataSource.getRepository(User).extend({
         where: { email },
         relations: {
           tokens: true,
-          sessions: true,
           teamMembers: true,
           coach: true
         }
@@ -168,7 +160,6 @@ export const userRepository = AppDataSource.getRepository(User).extend({
         where: { phone },
         relations: {
           tokens: true,
-          sessions: true,
           teamMembers: true,
           coach: true
         }
@@ -185,7 +176,6 @@ export const userRepository = AppDataSource.getRepository(User).extend({
         where: { lastName: lastName },
         relations: {
           tokens: true,
-          sessions: true,
           teamMembers: true,
           coach: true
         }
@@ -204,7 +194,6 @@ export const userRepository = AppDataSource.getRepository(User).extend({
         },
         relations: {
           tokens: true,
-          sessions: true,
           teamMembers: true,
           coach: true
         }
@@ -326,7 +315,8 @@ export const userRepository = AppDataSource.getRepository(User).extend({
       .createQueryBuilder('user')
       .update(User)
       .set({
-        emailVerified: UserEmailVerificationState.VERIFIED
+        emailVerified: UserEmailVerificationState.VERIFIED,
+        emailVerifiedAt: () => 'GETUTCDATE()'
       })
       .where('user.userEmail = :userEmail', { userEmail })
       .andWhere('user.userId = :userId', { userId })

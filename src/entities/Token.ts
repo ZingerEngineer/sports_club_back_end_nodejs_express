@@ -1,13 +1,15 @@
-import { Entity, Column, PrimaryColumn, JoinColumn, ManyToOne } from 'typeorm'
+import {
+  Entity,
+  Column,
+  JoinColumn,
+  ManyToOne,
+  PrimaryGeneratedColumn
+} from 'typeorm'
 import { User } from './User'
-import { TokenTypes } from '../enums/token.enums'
 @Entity()
 export class Token {
-  @PrimaryColumn({
-    type: 'varchar',
-    length: 255
-  })
-  tokenId: string
+  @PrimaryGeneratedColumn()
+  tokenId: number
 
   @ManyToOne(() => User, (user) => user.tokens)
   @JoinColumn({
@@ -20,15 +22,13 @@ export class Token {
     default: () => 'DATEADD(MINUTE,60,GETUTCDATE())',
     nullable: false
   })
-  expiresIn: string
+  expiresAt: string
 
   @Column({
     type: 'nvarchar',
-    length: 'MAX',
-    default: '',
-    nullable: false
+    nullable: true
   })
-  tokenBody: string
+  token: string
 
   @Column({
     type: 'datetime',
@@ -36,14 +36,6 @@ export class Token {
     nullable: false
   })
   createdAt: string
-
-  @Column({
-    type: 'int',
-    width: 1,
-    default: TokenTypes.SAFETY,
-    nullable: false
-  })
-  tokenType: number
 
   @Column({
     type: 'int',

@@ -16,7 +16,6 @@ import {
   UserRoles,
   UserEmailVerificationState
 } from '../enums/user.enums'
-import { Session } from './Session'
 import { Token } from './Token'
 
 @Entity()
@@ -45,16 +44,6 @@ export class User {
   })
   role: number
 
-  @OneToMany(() => Session, (sessions) => sessions.user, {
-    cascade: true,
-    onDelete: 'CASCADE',
-    orphanedRowAction: 'soft-delete'
-  })
-  @JoinColumn({
-    name: 'sessions'
-  })
-  sessions: Session[]
-
   @OneToMany(() => Token, (tokens) => tokens.user, {
     cascade: true,
     onDelete: 'CASCADE',
@@ -81,6 +70,11 @@ export class User {
     nullable: false
   })
   emailVerified: number
+
+  @Column({
+    type: 'datetime'
+  })
+  emailVerifiedAt: string
 
   @Column({
     type: 'varchar',

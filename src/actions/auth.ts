@@ -2,113 +2,142 @@ import { User } from '../entities/User'
 import { userRepository } from '../repositories/user.repository'
 import bcrypt from 'bcrypt'
 import dotenv from 'dotenv'
-import { sign, verify, decode } from 'jsonwebtoken'
+import { sign, verify } from 'jsonwebtoken'
 import {
   UserEmailVerificationState,
-  UserGenders,
-  UserJobs,
   UserLogStatus,
   UserRoles
 } from '../enums/user.enums'
-import { sessionRepository } from '../repositories/session.repository'
 import { sendEmail } from '../services/mailerConfig'
 import { tokenRepository } from '../repositories/token.repository'
-import { TokenTypes } from '../enums/token.enums'
 import { addMinutesToDate } from '../utils/addMinutesToDate'
 import axios from 'axios'
 import {
   getGoogleOAuthTokens,
   getGoogleUser
 } from '../services/google.oauth.services'
-import { userInfo } from 'os'
 import { Token } from '../entities/Token'
-import { Session } from 'inspector'
+import { JWTPayload } from 'jose'
 
 dotenv.config()
 
 const tokenSecret = process.env.TOKEN_SECRET
 
-const signSessionData = async (sessionData: string): Promise<string> => {
-  const signedSessionData = sign(sessionData, tokenSecret)
-  return signedSessionData
-}
-
-const sendVerificationLink = async (email: string) => {
+const sendVerificationLink = async (
+  email: string,
+  verificationToken: string
+) => {
   try {
-    const user = await userRepository.findUserByEmail(email)
-    if (!user) throw new Error('User not found')
-
-    const userVerificationToken = user.tokens.filter(
-      (token) => token.tokenType === TokenTypes.VERIFYEMAIL
-    )[0].tokenBody
-    if (!userVerificationToken) throw new Error('Token not found')
-    const verifyUrl = `http://localhost/v1/verify/email?vt=${userVerificationToken}`
+    const dbUser = await userRepository.findOne({
+      where: {
+        email: email
+      }
+    })
+    if (!dbUser) throw new Error("user doesn't exists")
+    if (!verificationToken) throw new Error('verification token missing')
+    const verifyUrl = `http://localhost/v1/verify/email?vt=${verificationToken}`
     await sendEmail(
       email,
       'Sports club email verification',
       `The following link is a one time link and is available for 3 minutes, carefully use it to validate your email: ${verifyUrl}.`
     )
   } catch (error) {
-    throw new Error('Verification email failed')
+    throw new Error('verification mail creation failed')
   }
+}
+type emailVerificationTokenVerificationResults = {
+  userId: string
+  email: string
+  iat: number
 }
 
 export const verifyEmail = async (userVerificationToken: string) => {
   try {
-    let userId = ''
-    let userEmail = ''
-    if (!userVerificationToken) throw new Error('Token not found')
-    let tokenVerificationResults = verify(userVerificationToken, tokenSecret)
-    if (!tokenVerificationResults) throw new Error('Invalid token')
-
-    if (typeof tokenVerificationResults !== 'string') {
-      userId = tokenVerificationResults.userId
-      userEmail = tokenVerificationResults.userEmail
-    }
-    await userRepository.makeUserEmailVertified(userId, userEmail)
-    const user = await userRepository.findUserByEmail(userEmail)
+    const verificationResults = verify(
+      userVerificationToken,
+      tokenSecret
+    ) as emailVerificationTokenVerificationResults
+    const { userId, email } = verificationResults
+    await userRepository.makeUserEmailVertified(userId, email)
+    const user = await userRepository.findOne({ where: { email: email } })
     await tokenRepository.delete({
       user,
-      tokenBody: userVerificationToken
+      token: userVerificationToken
     })
   } catch (error) {
-    throw new Error('Invaid token')
+    throw new Error('email verification failed')
   }
 }
 
-const login = async (email: string, phone: string, password: string) => {
+const createEmailVerificationToken = async (
+  dbUser: User,
+  tokenSecret: string
+) => {
+  const newEmailVerificationToken = sign(
+    {
+      userId: dbUser.userId,
+      userEmail: dbUser.email
+    },
+    tokenSecret,
+    {
+      expiresIn: '5m'
+    }
+  )
+
+  const newDbEmailVerificationToken = tokenRepository.create({
+    expiresAt: addMinutesToDate(new Date(), 5).toISOString(),
+    user: dbUser,
+    token: newEmailVerificationToken
+  })
+  await tokenRepository.save(newDbEmailVerificationToken)
+  return newEmailVerificationToken
+}
+
+const createNewAccessTokenForUser = async (
+  dbUser: User,
+  returnedUser: Partial<User>,
+  tokenSecret: string
+) => {
+  const newAccessToken = sign(returnedUser, tokenSecret, { expiresIn: '60d' })
+  const newDbAccessToken = tokenRepository.create({
+    user: dbUser,
+    expiresAt: addMinutesToDate(new Date(), 24 * 60 * 60).toISOString(),
+    token: newAccessToken
+  })
+  await tokenRepository.save(newDbAccessToken)
+  return newAccessToken
+}
+
+const login = async (
+  formEmail: string,
+  formPhone: string,
+  formPassword: string
+) => {
   try {
     let dbUser: User
-    if (email) {
-      dbUser = await userRepository.findUserByEmail(email)
+    if (formEmail) {
+      dbUser = await userRepository.findUserByEmail(formEmail)
     }
-    if (phone) {
-      dbUser = await userRepository.findUserByPhone(phone)
+    if (formPhone) {
+      dbUser = await userRepository.findUserByPhone(formPhone)
     }
-    if (!dbUser) throw new Error('Login failed')
-    const passCompareCheck = await bcrypt.compare(dbUser.password, password)
-    if (!passCompareCheck) throw new Error('Login failed')
+    if (!dbUser) throw new Error("user doesn't exist")
+    const passCompareCheck = await bcrypt.compare(dbUser.password, formPassword)
+    if (!passCompareCheck) throw new Error('incorrect password')
+    const { password, tokens, ...safeUser } = dbUser
 
-    const newSignedSessionData = await signSessionData(
-      JSON.stringify({ status: UserLogStatus.LOGGEDIN })
-    )
-    const newSessionExpirationDate = addMinutesToDate(
-      new Date(),
-      24 * 60
-    ).toISOString()
-
-    const newSession = await sessionRepository.createSession(
+    const newAccessToken = await createNewAccessTokenForUser(
       dbUser,
-      newSessionExpirationDate,
-      newSignedSessionData
+      safeUser,
+      tokenSecret
     )
 
     return {
-      user: dbUser,
-      session: newSession
+      user: safeUser,
+      accessToken: newAccessToken
     }
   } catch (error) {
-    throw new Error('Login failed')
+    throw new Error('login failed')
   }
 }
 
@@ -117,7 +146,7 @@ const signUp = async (
   lastName: string,
   email: string,
   phone: string,
-  password: string,
+  formPassword: string,
   gender: number,
   dob: string,
   job: number,
@@ -127,11 +156,11 @@ const signUp = async (
     let dbUser: User
     dbUser = await userRepository.findUserByEmail(email)
     if (dbUser) {
-      throw new Error('Signup failed')
+      throw new Error('user already exists')
     }
     dbUser = await userRepository.findUserByPhone(phone)
     if (dbUser) {
-      throw new Error('Signup failed')
+      throw new Error('user already exists')
     }
     const newUser = await userRepository.createUser(
       firstName,
@@ -139,7 +168,7 @@ const signUp = async (
       gender,
       email,
       phone,
-      password,
+      formPassword,
       UserRoles.USER,
       dob,
       job,
@@ -147,62 +176,36 @@ const signUp = async (
       teamNameRelatingUserJob
     )
 
-    const verificationToken = sign(
-      {
-        userId: newUser.userId,
-        userRole: newUser.role,
-        userEmail: newUser.email
-      },
-      tokenSecret,
-      {
-        expiresIn: '3m'
-      }
-    )
-
-    await tokenRepository.createToken(
+    const { password, tokens, ...safeUser } = newUser
+    const newAccessToken = await createNewAccessTokenForUser(
       newUser,
-      addMinutesToDate(new Date(), 3).toISOString(),
-      verificationToken,
-      TokenTypes.VERIFYEMAIL,
-      1
+      safeUser,
+      tokenSecret
     )
-
-    await sendVerificationLink(newUser.email)
-
-    const newSignedSessionData = await signSessionData(
-      JSON.stringify({
-        status: UserLogStatus.LOGGEDIN
-      })
-    )
-    const newSessionExpirationDate = addMinutesToDate(
-      new Date(),
-      60 * 24
-    ).toISOString()
-
-    const newSession = await sessionRepository.createSession(
+    const newEmailVerificationToken = await createEmailVerificationToken(
       newUser,
-      newSessionExpirationDate,
-      newSignedSessionData
+      tokenSecret
     )
+
+    await sendVerificationLink(newUser.email, newEmailVerificationToken)
 
     return {
       user: newUser,
-      session: newSession
+      accessToken: newAccessToken,
+      verificationToken: newEmailVerificationToken
     }
   } catch (error) {
     throw new Error('Signup failed')
   }
 }
 
-const logOut = async (id: number) => {
+const logOut = async (id: number, accessToken: string) => {
   try {
     const user = await userRepository.findUserById(id)
-    if (!user) throw new Error('Logout failed')
-    await sessionRepository.delete({
-      user: user
-    })
+    if (!user) throw new Error("user doesn't exist")
+    await tokenRepository.deleteToken(accessToken)
   } catch (error) {
-    throw new Error('Logout failed')
+    throw new Error('logout failed')
   }
 }
 
@@ -217,6 +220,7 @@ const signUpWithGoogle = async (code: string) => {
     const user = await userRepository.findUserByEmail(googleUserInfo.email)
     if (user) throw new Error('user already exists')
     let newGoogleUser: User
+    let newEmailVerificationToken: string
     if (googleUserInfo.verified_email) {
       newGoogleUser = userRepository.create({
         firstName: googleUserInfo.given_name,
@@ -234,53 +238,24 @@ const signUpWithGoogle = async (code: string) => {
         emailVerified: UserEmailVerificationState.UNVERIFIED
       })
 
-      const verificationToken = sign(
-        {
-          userId: newGoogleUser.userId,
-          userRole: newGoogleUser.role,
-          userEmail: newGoogleUser.email
-        },
-        tokenSecret,
-        {
-          expiresIn: '3m'
-        }
-      )
-
-      await tokenRepository.createToken(
+      newEmailVerificationToken = await createEmailVerificationToken(
         newGoogleUser,
-        addMinutesToDate(new Date(), 3).toISOString(),
-        verificationToken,
-        TokenTypes.VERIFYEMAIL,
-        1
+        tokenSecret
       )
-
-      await sendVerificationLink(newGoogleUser.email)
+      await sendVerificationLink(newGoogleUser.email, newEmailVerificationToken)
     }
     const savedUser = await userRepository.save(newGoogleUser)
 
-    const newGoogleAccessToken = tokenRepository.create({
-      expiresIn: addMinutesToDate(new Date(), 24 * 60).toISOString(),
-      tokenBody: sign({ ...newGoogleUser }, tokenSecret),
-      tokenType: TokenTypes.GOOGLEACCESS,
-      user: savedUser
-    })
-    const savedNewGoogleAccessToken = await tokenRepository.save(
-      newGoogleAccessToken
+    const { password, tokens, ...safeUser } = newGoogleUser
+    const newAccessToken = await createNewAccessTokenForUser(
+      savedUser,
+      safeUser,
+      tokenSecret
     )
-
-    const newGoogleSession = sessionRepository.create({
-      expiresAt: addMinutesToDate(new Date(), 24 * 60).toISOString(),
-      data: JSON.stringify({
-        LogStatus: UserLogStatus.LOGGEDIN,
-        googleUser: googleUserInfo
-      }),
-      user: savedUser
-    })
-    const savedNewGoogleSession = await sessionRepository.save(newGoogleSession)
-
     return {
-      accessToken: savedNewGoogleAccessToken,
-      session: savedNewGoogleSession
+      user: safeUser,
+      accessToken: newAccessToken,
+      verificationToken: newEmailVerificationToken
     }
   } catch (error) {
     throw new Error('signup with google failed')
