@@ -2,6 +2,7 @@ import express from 'express'
 import { test } from '../controllers/test.controller'
 import {
   loginController,
+  logOutController,
   signUpController,
   signUpWithGoogleController,
   verifyEmailController
@@ -13,7 +14,7 @@ import {
 } from '../validationSchemas/user'
 
 import multer from 'multer'
-import { authorization } from '../middlewares/authorization.middleware'
+import { authorizationMiddleWare } from '../middlewares/authorization.middleware'
 const upload = multer({ dest: 'uploads/' })
 
 const publicRouter = express.Router()
@@ -30,7 +31,17 @@ publicRouter.post(
   loginController
 )
 
-publicRouter.post('/verify/email', authorization, verifyEmailController)
+publicRouter.post(
+  '/verify/email',
+  authorizationMiddleWare('accessToken'),
+  authorizationMiddleWare('verificationToken'),
+  verifyEmailController
+)
+publicRouter.post(
+  '/logout',
+  authorizationMiddleWare('accessToken'),
+  logOutController
+)
 
 publicRouter.get('/api/sessions/OAuth/google', signUpWithGoogleController)
 export default publicRouter
