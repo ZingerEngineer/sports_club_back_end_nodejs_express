@@ -26,6 +26,7 @@ export class Token {
 
   @Column({
     type: 'nvarchar',
+    length: 'MAX',
     nullable: true
   })
   token: string
