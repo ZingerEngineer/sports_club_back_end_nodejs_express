@@ -6,7 +6,8 @@ import {
   getGoogleUser,
   signUpWithGoogle,
   signUpWithFaceBook,
-  signUpWithGitHub
+  signUpWithGitHub,
+  changePassword
 } from '../actions/auth'
 import { verifyEmail } from '../actions/auth'
 import { getGoogleOAuthTokens } from '../services/google.oauth.services'
@@ -205,6 +206,12 @@ const signUpWithGitHubController = async (req: Request, res: Response) => {
   }
 }
 
+const forgotPasswordController = (req: Request, res: Response) => {
+  const { email } = req.body
+  if (!email) throw new Error('missing email')
+  await changePassword(email)
+}
+
 export {
   loginController,
   signUpController,
@@ -212,5 +219,6 @@ export {
   verifyEmailController,
   signUpWithFaceBookController,
   signUpWithGoogleController,
-  signUpWithGitHubController
+  signUpWithGitHubController,
+  forgotPasswordController
 }

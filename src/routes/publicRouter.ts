@@ -7,7 +7,8 @@ import {
   signUpWithGoogleController,
   signUpWithFaceBookController,
   signUpWithGitHubController,
-  verifyEmailController
+  verifyEmailController,
+  forgotPasswordController
 } from '../controllers/user.controller'
 import { validationMiddleWare } from '../middlewares/validation.middleware'
 import {
@@ -50,4 +51,6 @@ publicRouter.get('/auth/OAuth/google', signUpWithGoogleController)
 publicRouter.get('/auth/OAuth/faceBook', signUpWithFaceBookController)
 
 publicRouter.get('/auth/OAuth/github', signUpWithGitHubController)
+
+publicRouter.post('/forgot-password', forgotPasswordController)
 export default publicRouter

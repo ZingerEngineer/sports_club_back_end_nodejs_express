@@ -92,42 +92,21 @@ export const verifyEmail = async (userVerificationToken: string) => {
   }
 }
 
-const createEmailVerificationToken = async (
-  dbUser: User,
-  tokenSecret: string
+const createJWTToken = (
+  user: User,
+  JWTExpiresIn: string,
+  unWantedAttributes: string[]
 ) => {
-  const newEmailVerificationToken = sign(
-    {
-      userId: dbUser.userId,
-      userEmail: dbUser.email
-    },
-    tokenSecret,
-    {
-      expiresIn: '5m'
+  const userDataToBeTokenized = Object.keys(user).reduce((acc, key) => {
+    if (!unWantedAttributes.includes(key)) {
+      acc[key] = user[key]
     }
-  )
-
-  const newDbEmailVerificationToken = tokenRepository.create({
-    expiresAt: addMinutesToDate(new Date(), 5).toISOString(),
-    user: dbUser,
-    token: newEmailVerificationToken
+    return acc
+  }, {} as Partial<User>)
+  const newAccessToken = sign({ ...userDataToBeTokenized }, tokenSecret, {
+    expiresIn: JWTExpiresIn
   })
-  await tokenRepository.save(newDbEmailVerificationToken)
-  return newEmailVerificationToken
-}
 
-const createNewAccessTokenForUser = async (
-  dbUser: User,
-  returnedUser: Partial<User>,
-  tokenSecret: string
-) => {
-  const newAccessToken = sign(returnedUser, tokenSecret, { expiresIn: '60d' })
-  const newDbAccessToken = tokenRepository.create({
-    user: dbUser,
-    expiresAt: addMinutesToDate(new Date(), 24 * 60 * 60).toISOString(),
-    token: newAccessToken
-  })
-  await tokenRepository.save(newDbAccessToken)
   return newAccessToken
 }
 
@@ -149,11 +128,8 @@ const login = async (
     if (!passCompareCheck) throw new Error('incorrect password')
     const { password, tokens, ...safeUser } = dbUser
 
-    const newAccessToken = await createNewAccessTokenForUser(
-      dbUser,
-      safeUser,
-      tokenSecret
-    )
+    const newAccessToken = createJWTToken(dbUser, '60d', ['password', 'tokens'])
+    await tokenRepository.saveNewDbToken(newAccessToken, dbUser, 24 * 60 * 60)
 
     return {
       user: safeUser,
@@ -200,16 +176,17 @@ const signUp = async (
     )
 
     const { password, tokens, ...safeUser } = newUser
-    const newAccessToken = await createNewAccessTokenForUser(
-      newUser,
-      safeUser,
-      tokenSecret
-    )
-    const newEmailVerificationToken = await createEmailVerificationToken(
-      newUser,
-      tokenSecret
-    )
+    const newAccessToken = createJWTToken(newUser, '60d', [
+      'password',
+      'tokens'
+    ])
+    await tokenRepository.saveNewDbToken(newAccessToken, newUser, 24 * 60 * 60)
 
+    const newEmailVerificationToken = createJWTToken(newUser, '5m', [
+      'password',
+      'tokens'
+    ])
+    await tokenRepository.saveNewDbToken(newEmailVerificationToken, newUser, 5)
     await sendVerificationLink(newUser.email, newEmailVerificationToken)
 
     return {
@@ -228,7 +205,7 @@ const logOut = async (id: number, accessToken: string) => {
     if (!user) throw new Error("user doesn't exist")
     await tokenRepository.deleteToken(accessToken)
   } catch (error) {
-    throw new Error('logout failed')
+    throw new Error('Logout failed')
   }
 }
 
@@ -242,7 +219,7 @@ const signUpWithGoogle = async (code: string) => {
 
     const user = await userRepository.findUserByEmail(googleUserInfo.email)
     if (user) throw new Error('user already exists')
-    let newGoogleUser: User
+    let newGoogleUser: User = null
     let newEmailVerificationToken: string = null
     if (googleUserInfo.verified_email) {
       newGoogleUser = userRepository.create({
@@ -250,7 +227,8 @@ const signUpWithGoogle = async (code: string) => {
         lastName: googleUserInfo.family_name,
         userGoogleId: googleUserInfo.id,
         profilePicture: googleUserInfo.picture,
-        emailVerified: UserEmailVerificationState.VERIFIED
+        emailVerified: UserEmailVerificationState.VERIFIED,
+        emailVerifiedAt: new Date().toISOString()
       })
     } else {
       newGoogleUser = userRepository.create({
@@ -261,21 +239,29 @@ const signUpWithGoogle = async (code: string) => {
         emailVerified: UserEmailVerificationState.UNVERIFIED
       })
 
-      newEmailVerificationToken = await createEmailVerificationToken(
+      newEmailVerificationToken = createJWTToken(newGoogleUser, '5m', [
+        'password',
+        'tokens'
+      ])
+      await tokenRepository.saveNewDbToken(
+        newEmailVerificationToken,
         newGoogleUser,
-        tokenSecret
+        5
       )
       await sendVerificationLink(newGoogleUser.email, newEmailVerificationToken)
     }
     const savedUser = await userRepository.save(newGoogleUser)
 
     const { password, tokens, ...safeUser } = newGoogleUser
-    const newAccessToken = await createNewAccessTokenForUser(
+    const newAccessToken = createJWTToken(savedUser, '60d', [
+      'password',
+      'tokens'
+    ])
+    await tokenRepository.saveNewDbToken(
+      newAccessToken,
       savedUser,
-      safeUser,
-      tokenSecret
+      24 * 60 * 60
     )
-
     return {
       user: safeUser,
       accessToken: newAccessToken,
@@ -344,13 +330,17 @@ const signUpWithFaceBook = async (code: string) => {
 
     const { password, tokens, ...safeUser } = savedDbUser
 
-    const newAccessToken = createNewAccessTokenForUser(
+    const newAccessToken = createJWTToken(savedDbUser, '60d', [
+      'password',
+      'tokens'
+    ])
+    await tokenRepository.saveNewDbToken(
+      newAccessToken,
       savedDbUser,
-      safeUser,
-      tokenSecret
+      24 * 60 * 60
     )
 
-    return { accessToken: newAccessToken, user: savedDbUser }
+    return { accessToken: newAccessToken, user: safeUser }
   } catch (error) {
     throw new Error('facebook signup failed')
   }
@@ -408,16 +398,47 @@ const signUpWithGitHub = async (code: string) => {
 
     const { password, tokens, ...safeUser } = savedDbUser
 
-    const newAccessToken = createNewAccessTokenForUser(
+    const newAccessToken = createJWTToken(savedDbUser, '60d', [
+      'password',
+      'tokens'
+    ])
+    await tokenRepository.saveNewDbToken(
+      newAccessToken,
       savedDbUser,
-      safeUser,
-      tokenSecret
+      24 * 60 * 60
     )
 
-    return { accessToken: newAccessToken, user: savedDbUser }
+    return { accessToken: newAccessToken, user: safeUser }
   } catch (error) {
     throw new Error('github signup failed')
   }
+}
+
+const createForgetPasswordEmail = (
+  email: string,
+  forgotPasswordToken: string
+) => {}
+
+const changePassword = async (
+  email: string,
+  formPassword: string,
+  forgotPasswordToken: string
+) => {
+  const dbUser = await userRepository.findOne({
+    where: {
+      email: email
+    }
+  })
+  if (!dbUser) throw new Error("User doesn't exist")
+  await tokenRepository.delete({
+    token: forgotPasswordToken
+  })
+  await userRepository.update(
+    {
+      password: formPassword
+    },
+    dbUser
+  )
 }
 
 export {
