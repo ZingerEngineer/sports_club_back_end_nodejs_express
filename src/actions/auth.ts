@@ -5,7 +5,7 @@ import dotenv from 'dotenv'
 import { sign, verify } from 'jsonwebtoken'
 import {
   UserEmailVerificationState,
-  UserLogStatus,
+  UserGenders,
   UserRoles
 } from '../enums/user.enums'
 import { sendEmail } from '../services/mailerConfig'
@@ -16,13 +16,36 @@ import {
   getGoogleOAuthTokens,
   getGoogleUser
 } from '../services/google.oauth.services'
-import { Token } from '../entities/Token'
-import { JWTPayload } from 'jose'
+import { convertFaceBookToSQLDate } from '../utils/convertFaceBookToSQLDate'
+import { getUserAge } from '../utils/getUserAge'
 
 dotenv.config()
 
 const tokenSecret = process.env.TOKEN_SECRET
 
+type TFaceBookUser = {
+  id: string
+  first_name?: string
+  last_name?: string
+  birthday?: string
+  gender?: string
+  picture?: {
+    data: {
+      height: number
+      is_silhouette: boolean
+      url: string
+      width: number
+    }
+  }
+}
+
+type TGitHubUser = {
+  id: string
+  node_id: string
+  avatar_url: string
+  name?: string
+  email?: string
+}
 const sendVerificationLink = async (
   email: string,
   verificationToken: string
@@ -220,7 +243,7 @@ const signUpWithGoogle = async (code: string) => {
     const user = await userRepository.findUserByEmail(googleUserInfo.email)
     if (user) throw new Error('user already exists')
     let newGoogleUser: User
-    let newEmailVerificationToken: string
+    let newEmailVerificationToken: string = null
     if (googleUserInfo.verified_email) {
       newGoogleUser = userRepository.create({
         firstName: googleUserInfo.given_name,
@@ -252,6 +275,7 @@ const signUpWithGoogle = async (code: string) => {
       safeUser,
       tokenSecret
     )
+
     return {
       user: safeUser,
       accessToken: newAccessToken,
@@ -262,4 +286,146 @@ const signUpWithGoogle = async (code: string) => {
   }
 }
 
-export { signUp, login, logOut, getGoogleUser, signUpWithGoogle }
+const signUpWithFaceBook = async (code: string) => {
+  try {
+    const client_id = process.env.FB_APPID_SECRET
+    const redirect_uri = process.env.FB_REDIRECT_URI
+    const client_secret = process.env.FB_APP_SECRET
+    if (!client_id || !redirect_uri || !client_secret || !code)
+      throw new Error('missing signup credentials')
+    const tokenResponse = await axios.get(
+      `https://graph.facebook.com/v20.0/oauth/access_token?client_id=${client_id}&redirect_uri=${redirect_uri}&client_secret=${client_secret}&code=${code}`
+    )
+
+    const accessToken = tokenResponse.data.access_token as string
+    if (!accessToken || typeof accessToken !== 'string')
+      throw new Error('invalid access token')
+    const userResponse = await axios.get('https://graph.facebook.com/me', {
+      params: {
+        access_token: accessToken,
+        fields: 'id,first_name,last_name,picture'
+      }
+    })
+
+    const fbUser = userResponse.data as TFaceBookUser
+    if (!fbUser) throw new Error('invalid user')
+    let first_name: string = 'guest'
+    let last_name: string = null
+    let birthday: string = null
+    let age: number = null
+    let gender: number = null
+    let picture: string = null
+    if (fbUser.first_name) first_name = fbUser.first_name
+    if (fbUser.last_name) last_name = fbUser.last_name
+    if (fbUser.birthday) {
+      birthday = convertFaceBookToSQLDate(fbUser.birthday)
+      age = getUserAge(birthday)
+    }
+
+    if (fbUser.gender) {
+      if (fbUser.gender === 'male') gender = UserGenders.MALE
+      if (fbUser.gender === 'female') gender = UserGenders.FEMALE
+    }
+    if (fbUser.picture) picture = fbUser.picture.data.url
+
+    const newDbUser = userRepository.create({
+      userFaceBookId: fbUser.id,
+      firstName: first_name,
+      lastName: last_name,
+      dob: birthday,
+      age: age,
+      gender: gender,
+      profilePicture: picture,
+      emailVerified: 1,
+      emailVerifiedAt: new Date().toISOString()
+    })
+
+    const savedDbUser = await userRepository.save(newDbUser)
+
+    const { password, tokens, ...safeUser } = savedDbUser
+
+    const newAccessToken = createNewAccessTokenForUser(
+      savedDbUser,
+      safeUser,
+      tokenSecret
+    )
+
+    return { accessToken: newAccessToken, user: savedDbUser }
+  } catch (error) {
+    throw new Error('facebook signup failed')
+  }
+}
+
+const signUpWithGitHub = async (code: string) => {
+  try {
+    const client_id = process.env.GITHUB_CLIENT_ID_SECRET
+    const redirect_uri = process.env.GITHUB_REDIRECT_URI_SECRET
+    const client_secret = process.env.GITHUB_CLIENT_SECRET
+    if (!client_id || !redirect_uri || !client_secret || !code)
+      throw new Error('missing signup credentials')
+    const tokenResponse = await axios.post(
+      `https://github.com/login/oauth/access_token`,
+      {
+        client_id,
+        client_secret,
+        code,
+        redirect_uri
+      },
+      {
+        headers: { Accept: 'application/json' }
+      }
+    )
+
+    const accessToken = tokenResponse.data.access_token as string
+    if (!accessToken || typeof accessToken !== 'string')
+      throw new Error('invalid access token')
+    const userResponse = await axios.get('https://api.github.com/user', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    })
+
+    const gitHubUser = userResponse.data as TGitHubUser
+
+    if (!gitHubUser) throw new Error('invalid user')
+    let first_name: string = 'guest'
+    let email: string = null
+    let picture: string = null
+    if (gitHubUser.name) first_name = gitHubUser.name
+    if (gitHubUser.email) email = gitHubUser.email
+    if (gitHubUser.avatar_url) picture = gitHubUser.avatar_url
+
+    const newDbUser = userRepository.create({
+      userGitHubId: gitHubUser.id,
+      firstName: first_name,
+      email: email,
+      profilePicture: picture,
+      emailVerified: 1,
+      emailVerifiedAt: new Date().toISOString()
+    })
+
+    const savedDbUser = await userRepository.save(newDbUser)
+
+    const { password, tokens, ...safeUser } = savedDbUser
+
+    const newAccessToken = createNewAccessTokenForUser(
+      savedDbUser,
+      safeUser,
+      tokenSecret
+    )
+
+    return { accessToken: newAccessToken, user: savedDbUser }
+  } catch (error) {
+    throw new Error('github signup failed')
+  }
+}
+
+export {
+  signUp,
+  login,
+  logOut,
+  getGoogleUser,
+  signUpWithGoogle,
+  signUpWithFaceBook,
+  signUpWithGitHub
+}

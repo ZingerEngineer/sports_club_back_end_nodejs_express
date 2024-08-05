@@ -26,9 +26,23 @@ export class User {
   @Column({
     type: 'nvarchar',
     nullable: true,
-    length: 100
+    length: 'MAX'
   })
   userGoogleId: string
+
+  @Column({
+    type: 'nvarchar',
+    nullable: true,
+    length: 'MAX'
+  })
+  userFaceBookId: string
+
+  @Column({
+    type: 'nvarchar',
+    nullable: true,
+    length: 'MAX'
+  })
+  userGitHubId: string
 
   @Column({
     type: 'nvarchar',
@@ -72,7 +86,8 @@ export class User {
   emailVerified: number
 
   @Column({
-    type: 'datetime'
+    type: 'datetime',
+    nullable: true
   })
   emailVerifiedAt: string
 
@@ -80,14 +95,14 @@ export class User {
     type: 'varchar',
     length: 40,
     default: '',
-    nullable: false
+    nullable: true
   })
   email: string
 
   @Column({
     type: 'varchar',
     length: 40,
-    nullable: false
+    nullable: true
   })
   password: string
 
@@ -110,22 +125,19 @@ export class User {
   @Column({
     type: 'int',
     width: 1,
-    default: UserGenders.MALE,
-    nullable: false
+    nullable: true
   })
   gender: number
 
   @Column({
     type: 'date',
-    default: '',
-    nullable: false
+    nullable: true
   })
   dob: string
 
   @Column({
     type: 'int',
-    default: 0,
-    nullable: false
+    nullable: true
   })
   age: number
 

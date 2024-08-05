@@ -4,7 +4,9 @@ import {
   signUp,
   logOut,
   getGoogleUser,
-  signUpWithGoogle
+  signUpWithGoogle,
+  signUpWithFaceBook,
+  signUpWithGitHub
 } from '../actions/auth'
 import { verifyEmail } from '../actions/auth'
 import { getGoogleOAuthTokens } from '../services/google.oauth.services'
@@ -17,6 +19,7 @@ type TSignUpWithGoogleController = (
   req: Request,
   res: Response
 ) => Promise<void>
+type TSignUpWithFaceBook = (req: Request, res: Response) => Promise<void>
 
 const loginController: TLoginController = async (req, res) => {
   try {
@@ -136,16 +139,69 @@ const signUpWithGoogleController: TSignUpWithGoogleController = async (
       signed: true,
       maxAge: 60 * 24 * 60 * 60 * 1000
     })
-    res.cookie('verificationToken', verificationToken, {
+    if (verificationToken)
+      res.cookie('verificationToken', verificationToken, {
+        httpOnly: true,
+        sameSite: true,
+        signed: true,
+        maxAge: 5 * 60 * 1000
+      })
+
+    res.status(200).json({ user })
+  } catch (error) {
+    res.status(400).json({ message: 'google signup failed' })
+  }
+}
+
+const signUpWithFaceBookController: TSignUpWithFaceBook = async (req, res) => {
+  const code = req.query.code as string
+  const state = req.query.state
+  const serverState = process.env.FB_OAUTH_STATE_SECRET
+
+  if (!code) throw new Error('missing auth code')
+
+  if (state !== serverState) throw new Error('invalid state')
+
+  try {
+    const { accessToken, user } = await signUpWithFaceBook(code)
+    res.cookie('accessToken', accessToken, {
       httpOnly: true,
       sameSite: true,
       signed: true,
       maxAge: 5 * 60 * 1000
     })
-
-    res.status(200).json({ user })
+    res.status(200).json({
+      user
+    })
   } catch (error) {
-    res.status(400).json({ message: 'google signup failed' })
+    console.error(error)
+    res.status(400).json({ message: 'facebook signup failed' })
+  }
+}
+
+const signUpWithGitHubController = async (req: Request, res: Response) => {
+  const code = req.query.code as string
+  const state = req.query.state
+  const serverState = process.env.GITHUB_STATE_SECRET
+
+  if (!code) throw new Error('missing auth code')
+
+  if (state !== serverState) throw new Error('invalid state')
+
+  try {
+    const { user, accessToken } = await signUpWithGitHub(code)
+    res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      sameSite: true,
+      signed: true,
+      maxAge: 5 * 60 * 1000
+    })
+    res.status(200).json({
+      user
+    })
+  } catch (error) {
+    console.error(error)
+    res.status(400).json({ message: 'github signup failed' })
   }
 }
 
@@ -154,5 +210,7 @@ export {
   signUpController,
   logOutController,
   verifyEmailController,
-  signUpWithGoogleController
+  signUpWithFaceBookController,
+  signUpWithGoogleController,
+  signUpWithGitHubController
 }
