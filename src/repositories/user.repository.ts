@@ -12,6 +12,7 @@ import {
   UserEmailVerificationState
 } from '../enums/user.enums'
 import { Repository } from 'typeorm'
+import { getUserAge } from '../utils/getUserAge'
 
 interface UserData {
   firstName: string
@@ -255,7 +256,7 @@ export const userRepository = AppDataSource.getRepository(User).extend({
     teamNameRelatingUserJob?: string
   ) {
     let user: User
-    const ageToUse = new Date().getFullYear() - parseInt(dob.split('-')[0])
+    const ageToUse = getUserAge(dob)
 
     if (teamNameRelatingUserJob) {
       if (job === UserJobs.COACH)

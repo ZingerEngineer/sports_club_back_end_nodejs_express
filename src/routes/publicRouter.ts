@@ -53,4 +53,6 @@ publicRouter.get('/auth/OAuth/faceBook', signUpWithFaceBookController)
 publicRouter.get('/auth/OAuth/github', signUpWithGitHubController)
 
 publicRouter.post('/forgot-password', forgotPasswordController)
+
+publicRouter.post('/reset-password')
 export default publicRouter

@@ -3,14 +3,13 @@ import {
   login,
   signUp,
   logOut,
-  getGoogleUser,
   signUpWithGoogle,
   signUpWithFaceBook,
   signUpWithGitHub,
-  changePassword
+  changePassword,
+  forgotPassword
 } from '../actions/auth'
 import { verifyEmail } from '../actions/auth'
-import { getGoogleOAuthTokens } from '../services/google.oauth.services'
 
 type TLoginController = (req: Request, res: Response) => Promise<void>
 type TLogOutController = (req: Request, res: Response) => Promise<void>
@@ -31,7 +30,7 @@ const loginController: TLoginController = async (req, res) => {
     if (!email && !phone)
       res.status(400).json({
         message: 'Login failed.',
-        reason: 'An Email or a phone number is required.'
+        reason: 'An email or a phone number is required.'
       })
     if (!password)
       res
@@ -92,13 +91,15 @@ const signUpController: TSignUpController = async (
       httpOnly: true,
       sameSite: true,
       signed: true,
-      maxAge: 5 * 60 * 1000
+      maxAge: 24 * 60 * 60 * 1000
     })
     res.status(200).json({
       user,
       message: 'User registered successfully.'
     })
   } catch (error) {
+    console.log(error)
+    console.error('Signup failed')
     res.status(400).json({ message: 'Signup failed.' })
   }
 }
@@ -108,7 +109,7 @@ const logOutController: TLogOutController = async (req, res) => {
     const userId = req.body.id
     const accessToken = req.cookies.accessToken
     await logOut(userId, accessToken)
-    res.status(200).json({ message: 'Logged out successfully' })
+    res.status(200).json({ message: 'Logged out successfully.' })
   } catch (error) {
     res.status(400).json({ message: 'Logout failed.' })
   }
@@ -118,6 +119,7 @@ const verifyEmailController: TVerifyEmailController = async (req, res) => {
   try {
     const { verificationToken } = req.cookies
     await verifyEmail(verificationToken)
+    res.status(200).json({ message: 'Email verified successfully.' })
   } catch (error) {
     res.status(400).json({ message: 'Verification failed.' })
   }
@@ -129,7 +131,7 @@ const signUpWithGoogleController: TSignUpWithGoogleController = async (
 ) => {
   try {
     const code = req.query.code as string
-    if (!code) res.status(403).json({ message: 'google code missing' })
+    if (!code) res.status(400).json({ message: 'Signup with google failed.' })
     const { user, accessToken, verificationToken } = await signUpWithGoogle(
       code
     )
@@ -140,17 +142,18 @@ const signUpWithGoogleController: TSignUpWithGoogleController = async (
       signed: true,
       maxAge: 60 * 24 * 60 * 60 * 1000
     })
-    if (verificationToken)
-      res.cookie('verificationToken', verificationToken, {
-        httpOnly: true,
-        sameSite: true,
-        signed: true,
-        maxAge: 5 * 60 * 1000
-      })
+    res.cookie('verificationToken', verificationToken, {
+      httpOnly: true,
+      sameSite: true,
+      signed: true,
+      maxAge: 24 * 60 * 60 * 1000
+    })
 
-    res.status(200).json({ user })
+    res
+      .status(200)
+      .json({ user, message: 'Signed up with google successfully.' })
   } catch (error) {
-    res.status(400).json({ message: 'google signup failed' })
+    res.status(400).json({ message: 'Signup with google failed.' })
   }
 }
 
@@ -159,23 +162,31 @@ const signUpWithFaceBookController: TSignUpWithFaceBook = async (req, res) => {
   const state = req.query.state
   const serverState = process.env.FB_OAUTH_STATE_SECRET
 
-  if (!code) throw new Error('missing auth code')
+  if (!code) throw new Error('Invalid facebook credentials')
 
-  if (state !== serverState) throw new Error('invalid state')
+  if (state !== serverState) throw new Error('Invalid facebook credentials')
 
   try {
-    const { accessToken, user } = await signUpWithFaceBook(code)
+    const { user, accessToken, verificationToken } = await signUpWithFaceBook(
+      code
+    )
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
       sameSite: true,
       signed: true,
       maxAge: 5 * 60 * 1000
     })
+    res.cookie('verificationToken', verificationToken, {
+      httpOnly: true,
+      sameSite: true,
+      signed: true,
+      maxAge: 24 * 60 * 60 * 1000
+    })
     res.status(200).json({
-      user
+      user,
+      message: 'Signed up with facebook successfully.'
     })
   } catch (error) {
-    console.error(error)
     res.status(400).json({ message: 'facebook signup failed' })
   }
 }
@@ -185,33 +196,56 @@ const signUpWithGitHubController = async (req: Request, res: Response) => {
   const state = req.query.state
   const serverState = process.env.GITHUB_STATE_SECRET
 
-  if (!code) throw new Error('missing auth code')
+  if (!code) throw new Error('Invalid github credentials')
 
-  if (state !== serverState) throw new Error('invalid state')
+  if (state !== serverState) throw new Error('Invalid github credentials')
 
   try {
-    const { user, accessToken } = await signUpWithGitHub(code)
+    const { user, accessToken, verificationToken } = await signUpWithGitHub(
+      code
+    )
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
       sameSite: true,
       signed: true,
       maxAge: 5 * 60 * 1000
     })
+    res.cookie('verificationToken', verificationToken, {
+      httpOnly: true,
+      sameSite: true,
+      signed: true,
+      maxAge: 24 * 60 * 60 * 1000
+    })
     res.status(200).json({
-      user
+      user,
+      message: 'Signed up with facebook successfully.'
     })
   } catch (error) {
-    console.error(error)
-    res.status(400).json({ message: 'github signup failed' })
+    res.status(400).json({ message: 'Github signup failed' })
   }
 }
 
-const forgotPasswordController = (req: Request, res: Response) => {
-  const { email } = req.body
-  if (!email) throw new Error('missing email')
-  await changePassword(email)
-}
+const forgotPasswordController = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body
+    if (!email) throw new Error('Missing email')
+    await forgotPassword(email)
 
+    res.status(200).json({ message: 'Reset password mail sent successfully.' })
+  } catch (error) {
+    res.status(400).json({ message: 'Failed to send reset password mail.' })
+  }
+}
+const resetPasswordController = async (req: Request, res: Response) => {
+  try {
+    const forgotPasswordToken = req.query.t as string
+    const { password } = req.body
+    await changePassword(password, forgotPasswordToken)
+    res.status(200).json({ message: 'Reset password successfully.' })
+  } catch (error) {
+    res.status(400).json({ message: 'Failed to reset password.' })
+  }
+}
 export {
   loginController,
   signUpController,
@@ -220,5 +254,6 @@ export {
   signUpWithFaceBookController,
   signUpWithGoogleController,
   signUpWithGitHubController,
-  forgotPasswordController
+  forgotPasswordController,
+  resetPasswordController
 }
