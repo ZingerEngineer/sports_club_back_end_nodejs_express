@@ -1,18 +1,13 @@
 import { AppDataSource } from '../services/data-source'
 import { User } from '../entities/User'
 import { IsDeleted } from '../enums/globalEnums'
-import { checkIdValidity } from '../utils/checkIdValidity'
 import { coachRepository } from './coach.repository'
 import { teamRepository } from './team.repository'
 import { teamMemberRepository } from './teamMember.repository'
-import {
-  UserRoles,
-  UserJobs,
-  UserGenders,
-  UserEmailVerificationState
-} from '../enums/user.enums'
+import { UserJobs, UserEmailVerificationState } from '../enums/user.enums'
 import { Repository } from 'typeorm'
 import { getUserAge } from '../utils/getUserAge'
+import { DatabaseError } from '../classes/Errors'
 
 interface UserData {
   firstName: string
@@ -48,7 +43,6 @@ const createJobUser = async (
   const checkedTeam = await teamRepository.findTeamByName(
     teamNameRelatingUserJob
   )
-  console.log(checkedTeam)
   if (!checkedTeam) throw new Error('Invalid team name')
   if (!salary) salary = 0
   const newUser = userRepository.create({
@@ -101,8 +95,7 @@ export const userRepository = AppDataSource.getRepository(User).extend({
         }
       })
     } catch (error) {
-      console.log(error)
-      return null
+      throw new DatabaseError('Find users failed.')
     }
   },
 
@@ -113,14 +106,12 @@ export const userRepository = AppDataSource.getRepository(User).extend({
           userId: id
         },
         relations: {
-          tokens: true,
           teamMembers: true,
           coach: true
         }
       })
     } catch (error) {
-      console.log(error)
-      return null
+      throw new DatabaseError('Find user by id failed.')
     }
   },
 

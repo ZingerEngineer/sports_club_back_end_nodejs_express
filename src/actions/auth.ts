@@ -19,6 +19,9 @@ import {
 import { convertFaceBookToSQLDate } from '../utils/convertFaceBookToSQLDate'
 import { getUserAge } from '../utils/getUserAge'
 import { AuthError, DatabaseError } from '../classes/Errors'
+import { AppDataSource } from '../services/data-source'
+import { EntityManager } from 'typeorm'
+import { Token } from '../entities/Token'
 
 dotenv.config()
 
@@ -53,7 +56,25 @@ type emailVerificationTokenVerificationResults = {
   iat: number
 }
 
+const createNewDbToken = (
+  jwtToken: string,
+  user: User,
+  minutesToAdd: number
+) => {
+  const newDbToken = new Token()
+  newDbToken.token = jwtToken
+  newDbToken.user = user
+  newDbToken.tokenUseTimes = 1
+  newDbToken.expiresAt = addMinutesToDate(
+    new Date(),
+    minutesToAdd
+  ).toISOString()
+  newDbToken.createdAt = new Date().toISOString()
+  return newDbToken
+}
+
 const newUserSignUpFlow = async (
+  transactionalEntityManager: EntityManager,
   userDataToBeTokenized: Partial<User>,
   newDbUser: User,
   JWTAccessTokenExpiresIn: string,
@@ -66,21 +87,24 @@ const newUserSignUpFlow = async (
       userDataToBeTokenized,
       JWTAccessTokenExpiresIn
     )
-    await tokenRepository.saveNewDbToken(
+    const newDbAccessToken = createNewDbToken(
       newAccessToken,
       newDbUser,
       dbAccessTokenExpiresIn
     )
 
+    await transactionalEntityManager.save(Token, newDbAccessToken)
+
     const newEmailVerificationToken = createJWTToken(
       userDataToBeTokenized,
       JWTVerificationTokenExpiresIn
     )
-    await tokenRepository.saveNewDbToken(
+    const newDbEmailVerificationToken = createNewDbToken(
       newEmailVerificationToken,
       newDbUser,
       dbVerificationTokenExpiresIn
     )
+    await transactionalEntityManager.save(Token, newDbEmailVerificationToken)
     const verificationEmail = await createTokenizedEmailLink(
       newDbUser.email,
       newEmailVerificationToken,
@@ -96,7 +120,7 @@ const newUserSignUpFlow = async (
       emailVerificationToken: newEmailVerificationToken
     }
   } catch (error) {
-    throw new Error('Signup stopped due to an error')
+    throw new Error('Creating tokens failed.')
   }
 }
 
@@ -159,13 +183,23 @@ const createJWTToken = (userData: Partial<User>, JWTExpiresIn: string) => {
   return JWTToken
 }
 
+interface ITokenUserData {
+  userId: number
+  userGoogleId?: string
+  userFaceBookId?: string
+  userGitHubId?: string
+  email: string
+  role: number
+  phone: string
+}
+
 const login = async (
   formEmail: string,
   formPhone: string,
   formPassword: string
 ) => {
   try {
-    let dbUser: User
+    let dbUser: User | undefined
     if (formEmail) {
       dbUser = await userRepository.findUserByEmail(formEmail)
     }
@@ -173,20 +207,33 @@ const login = async (
       dbUser = await userRepository.findUserByPhone(formPhone)
     }
     if (!dbUser) throw new DatabaseError("User doesn't exist")
-    const passCompareCheck = await bcrypt.compare(dbUser.password, formPassword)
+    const passCompareCheck = await bcrypt.compare(formPassword, dbUser.password)
     if (!passCompareCheck) throw new AuthError('Incorrect password')
     const { password, tokens, ...safeUser } = dbUser
     const { userId, email, role, phone } = dbUser
-
     const newAccessToken = createJWTToken({ userId, email, role, phone }, '60d')
-    await tokenRepository.saveNewDbToken(newAccessToken, dbUser, 24 * 60 * 60)
-
+    await AppDataSource.transaction(
+      async (transactionalEntityManager: EntityManager) => {
+        try {
+          const newDbAccessToken = createNewDbToken(
+            newAccessToken,
+            dbUser,
+            24 * 60 * 60
+          )
+          await transactionalEntityManager.save(Token, newDbAccessToken)
+        } catch (error) {
+          throw new AuthError('Login failed')
+        }
+      }
+    )
     return {
       user: safeUser,
       accessToken: newAccessToken
     }
   } catch (error) {
-    throw new AuthError('Login failed')
+    console.error('Login failed.')
+    console.trace()
+    throw Error('Login failed')
   }
 }
 
@@ -201,40 +248,45 @@ const signUp = async (
   job: number,
   teamNameRelatingUserJob?: string
 ) => {
-  let dbUser: User
+  let dbUser: User | undefined
   try {
     dbUser = await userRepository.findUserByEmail(email)
-    if (dbUser) {
-      throw new DatabaseError('User already exists')
-    }
+    if (dbUser) throw new DatabaseError('User already exists')
+
     dbUser = await userRepository.findUserByPhone(phone)
-    if (dbUser) {
-      throw new DatabaseError('User already exists')
-    }
-    const newUser = await userRepository.createUser(
-      firstName,
-      lastName,
-      gender,
-      email,
-      phone,
-      formPassword,
-      UserRoles.USER,
-      dob,
-      job,
-      null,
-      teamNameRelatingUserJob
-    )
-    const savedNewUser = await userRepository.save(newUser)
-    const { password, tokens, ...safeUser } = savedNewUser
-    const { userId, role } = savedNewUser
-    const { accessToken, emailVerificationToken } = await newUserSignUpFlow(
-      { userId, email, role, phone },
-      savedNewUser,
-      '60d',
-      '1d',
-      24 * 60 * 60,
-      24 * 60
-    )
+    if (dbUser) throw new DatabaseError('User already exists')
+
+    await AppDataSource.transaction(async (transactionalEntityManager) => {
+      try {
+        const newUser = await userRepository.createUser(
+          firstName,
+          lastName,
+          gender,
+          email,
+          phone,
+          formPassword,
+          UserRoles.USER,
+          dob,
+          job,
+          null,
+          teamNameRelatingUserJob
+        )
+        const savedNewUser = await transactionalEntityManager.save(
+          User,
+          newUser
+        )
+        const { password, tokens, ...safeUser } = savedNewUser
+        const { userId, role } = savedNewUser
+        const { accessToken, emailVerificationToken } = await newUserSignUpFlow(
+          { userId, email, role, phone },
+          savedNewUser,
+          '60d',
+          '1d',
+          24 * 60 * 60,
+          24 * 60
+        )
+      } catch (error) {}
+    })
 
     return {
       user: safeUser,
