@@ -5,7 +5,7 @@ import { coachRepository } from './coach.repository'
 import { teamRepository } from './team.repository'
 import { teamMemberRepository } from './teamMember.repository'
 import { UserJobs, UserEmailVerificationState } from '../enums/user.enums'
-import { Repository } from 'typeorm'
+import { EntityManager, Repository } from 'typeorm'
 import { getUserAge } from '../utils/getUserAge'
 import { DatabaseError } from '../classes/Errors'
 
@@ -232,75 +232,6 @@ export const userRepository = AppDataSource.getRepository(User).extend({
       console.log(error)
       return null
     }
-  },
-  async createUser(
-    firstName: string,
-    lastName: string,
-    gender: number,
-    email: string,
-    phone: string,
-    password: string,
-    role: number,
-    dob: string,
-    job?: number,
-    salary?: number,
-    teamNameRelatingUserJob?: string
-  ) {
-    let user: User
-    const ageToUse = getUserAge(dob)
-
-    if (teamNameRelatingUserJob) {
-      if (job === UserJobs.COACH)
-        user = await createJobUser(
-          job,
-          teamNameRelatingUserJob,
-          coachRepository,
-          {
-            firstName: firstName,
-            lastName: lastName,
-            gender: gender,
-            email: email,
-            phone: phone,
-            password: password,
-            role: role,
-            dob: dob,
-            age: ageToUse
-          }
-        )
-      if (job === UserJobs.TEAMMEMBER) {
-        user = await createJobUser(
-          job,
-          teamNameRelatingUserJob,
-          teamMemberRepository,
-          {
-            firstName: firstName,
-            lastName: lastName,
-            gender: gender,
-            email: email,
-            phone: phone,
-            password: password,
-            role: role,
-            dob: dob,
-            age: ageToUse
-          }
-        )
-      }
-    } else {
-      user = userRepository.create({
-        firstName: firstName,
-        lastName: lastName,
-        gender: gender,
-        email: email,
-        phone: phone,
-        password: password,
-        role: role,
-        dob: dob,
-        age: ageToUse,
-        job: UserJobs.GUEST
-      })
-    }
-    user = await userRepository.save(user)
-    return user
   },
   async makeUserEmailVertified(userId: string, userEmail: string) {
     userRepository
