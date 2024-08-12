@@ -41,6 +41,7 @@ type TFaceBookUser = {
       width: number
     }
   }
+  email?: string
 }
 
 type TGitHubUser = {
@@ -72,8 +73,31 @@ const createNewDbToken = (
   newDbToken.createdAt = new Date().toISOString()
   return newDbToken
 }
+const createTokenizedEmailLink = async (token: string, route: string) => {
+  try {
+    const tokenizedEmail = `http://localhost:1800/v1/${route}?t=${token}`
+    const finalEmailForm = `"The following email is a one time email and available for 5 minutes only: ${tokenizedEmail}`
+    return finalEmailForm
+  } catch (error) {
+    throw new Error('Tokenized email creation failed')
+  }
+}
 
-const newUserSignUpFlow = async (
+const sendTokenizedEmail = async (
+  emailTitle: string,
+  email: string,
+  emailBody: string
+) => {
+  try {
+    if (!emailBody) throw new Error('Missing email body')
+    await sendEmail(email, emailTitle, emailBody)
+  } catch (error) {
+    console.log(error)
+    throw new Error('Sending email failed')
+  }
+}
+
+const signUpTokensAndEmailCreation = async (
   transactionalEntityManager: EntityManager,
   userDataToBeTokenized: Partial<User>,
   newDbUser: User,
@@ -106,54 +130,17 @@ const newUserSignUpFlow = async (
     )
     await transactionalEntityManager.save(Token, newDbEmailVerificationToken)
     const verificationEmail = await createTokenizedEmailLink(
-      newDbUser.email,
       newEmailVerificationToken,
       'verify/email'
     )
-    await sendTokenizedEmail(
-      'Sports club email verification',
-      newDbUser.email,
-      verificationEmail
-    )
+
     return {
       accessToken: newAccessToken,
-      emailVerificationToken: newEmailVerificationToken
+      emailVerificationToken: newEmailVerificationToken,
+      verificationEmail
     }
   } catch (error) {
-    throw new Error('Creating tokens failed.')
-  }
-}
-
-const createTokenizedEmailLink = async (
-  email: string,
-  token: string,
-  route: string
-) => {
-  try {
-    const dbUser = await userRepository.findOne({
-      where: {
-        email: email
-      }
-    })
-    if (!dbUser) throw new DatabaseError("User doesn't exist")
-    const tokenizedEmail = `http://localhost:1800/v1/${route}?t=${token}`
-    const finalEmailForm = `Reset password',"The following email is a one time email and available for 5 minutes only: ${tokenizedEmail}`
-    return finalEmailForm
-  } catch (error) {
-    throw new Error('Verification email creation failed')
-  }
-}
-
-const sendTokenizedEmail = async (
-  emailTitle: string,
-  email: string,
-  emailBody: string
-) => {
-  try {
-    if (!emailBody) throw new Error('Missing email body')
-    await sendEmail(email, emailTitle, emailBody)
-  } catch (error) {
-    throw new Error('Sending email failed')
+    throw new Error('Creating tokens failed')
   }
 }
 
@@ -171,7 +158,7 @@ const verifyEmail = async (userVerificationToken: string) => {
       token: userVerificationToken
     })
   } catch (error) {
-    throw new Error('email verification failed')
+    throw new Error('Email verification failed')
   }
 }
 
@@ -183,16 +170,6 @@ const createJWTToken = (userData: Partial<User>, JWTExpiresIn: string) => {
   return JWTToken
 }
 
-interface ITokenUserData {
-  userId: number
-  userGoogleId?: string
-  userFaceBookId?: string
-  userGitHubId?: string
-  email: string
-  role: number
-  phone: string
-}
-
 const login = async (
   formEmail: string,
   formPhone: string,
@@ -200,6 +177,7 @@ const login = async (
 ) => {
   try {
     let dbUser: User | undefined
+    let accessToken: string
     if (formEmail) {
       dbUser = await userRepository.findUserByEmail(formEmail)
     }
@@ -210,11 +188,16 @@ const login = async (
     const passCompareCheck = await bcrypt.compare(formPassword, dbUser.password)
     if (!passCompareCheck) throw new AuthError('Incorrect password')
     const { password, tokens, ...safeUser } = dbUser
-    const { userId, email, role, phone } = dbUser
-    const newAccessToken = createJWTToken({ userId, email, role, phone }, '60d')
+    const { userId, email, role, phone, emailVerified } = dbUser
+
     await AppDataSource.transaction(
       async (transactionalEntityManager: EntityManager) => {
         try {
+          const newAccessToken = createJWTToken(
+            { userId, email, role, phone, emailVerified },
+            '60d'
+          )
+          accessToken = newAccessToken
           const newDbAccessToken = createNewDbToken(
             newAccessToken,
             dbUser,
@@ -228,10 +211,9 @@ const login = async (
     )
     return {
       user: safeUser,
-      accessToken: newAccessToken
+      accessToken
     }
   } catch (error) {
-    console.error('Login failed.')
     console.trace()
     throw Error('Login failed')
   }
@@ -245,10 +227,12 @@ const signUp = async (
   formPassword: string,
   gender: number,
   dob: string,
-  job: number,
-  teamNameRelatingUserJob?: string
+  job: number
 ) => {
   let dbUser: User | undefined
+  let safeUser: Partial<User> | undefined
+  let accessToken: string | undefined
+  let verificationToken: string | undefined
   try {
     dbUser = await userRepository.findUserByEmail(email)
     if (dbUser) throw new DatabaseError('User already exists')
@@ -256,46 +240,57 @@ const signUp = async (
     dbUser = await userRepository.findUserByPhone(phone)
     if (dbUser) throw new DatabaseError('User already exists')
 
-    await AppDataSource.transaction(async (transactionalEntityManager) => {
-      try {
-        const newUser = await userRepository.createUser(
-          firstName,
-          lastName,
-          gender,
-          email,
-          phone,
-          formPassword,
-          UserRoles.USER,
-          dob,
-          job,
-          null,
-          teamNameRelatingUserJob
-        )
-        const savedNewUser = await transactionalEntityManager.save(
-          User,
-          newUser
-        )
-        const { password, tokens, ...safeUser } = savedNewUser
-        const { userId, role } = savedNewUser
-        const { accessToken, emailVerificationToken } = await newUserSignUpFlow(
-          { userId, email, role, phone },
-          savedNewUser,
-          '60d',
-          '1d',
-          24 * 60 * 60,
-          24 * 60
-        )
-      } catch (error) {}
-    })
-
+    await AppDataSource.transaction(
+      async (transactionalEntityManager: EntityManager) => {
+        try {
+          const newUser = transactionalEntityManager.create(User, {
+            firstName: firstName,
+            lastName: lastName,
+            gender: gender,
+            email: email,
+            phone: phone,
+            password: formPassword,
+            role: UserRoles.USER,
+            dob: dob,
+            job: job
+          })
+          const savedNewUser = await transactionalEntityManager.save(
+            User,
+            newUser
+          )
+          const { password, tokens, ...filteredUser } = savedNewUser
+          safeUser = filteredUser
+          const { userId, role, emailVerified } = savedNewUser
+          const tokensAndEmailRes = await signUpTokensAndEmailCreation(
+            transactionalEntityManager,
+            { userId, email, role, phone, emailVerified },
+            savedNewUser,
+            '60d',
+            '1d',
+            24 * 60 * 60,
+            24 * 60
+          )
+          accessToken = tokensAndEmailRes.accessToken
+          verificationToken = tokensAndEmailRes.emailVerificationToken
+          sendTokenizedEmail(
+            'Email verification',
+            safeUser.email,
+            tokensAndEmailRes.verificationEmail
+          )
+        } catch (error) {
+          console.trace()
+          throw new Error('Signup transactions failed')
+        }
+      }
+    )
     return {
       user: safeUser,
-      accessToken: accessToken,
-      verificationToken: emailVerificationToken
+      accessToken,
+      verificationToken
     }
   } catch (error) {
-    console.log(error)
-    throw new AuthError('Signup failed')
+    console.trace()
+    throw new AuthError('User signup failed')
   }
 }
 
@@ -303,68 +298,144 @@ const logOut = async (id: number, accessToken: string) => {
   try {
     const user = await userRepository.findUserById(id)
     if (!user) throw new DatabaseError("User doesn't exist")
-    await tokenRepository.deleteToken(accessToken)
+    await AppDataSource.transaction(
+      async (transactionalEntityManager: EntityManager) => {
+        try {
+          await transactionalEntityManager.delete(Token, {
+            token: accessToken
+          })
+        } catch (error) {
+          console.trace()
+          throw new Error('Logging out transactions failed')
+        }
+      }
+    )
   } catch (error) {
+    console.trace()
     throw new AuthError('Logout failed')
   }
 }
 
 const signUpWithGoogle = async (code: string) => {
+  let existingGoogleUser: User
+  let safeUser: Partial<User> | undefined
+  let accessToken: string | undefined
+  let verificationToken: string | undefined
   try {
     const { id_token, access_token } = await getGoogleOAuthTokens(code)
     if (!id_token || !access_token)
-      throw new AuthError('Missing google OAuth credentials')
+      throw new AuthError('Missing google OAuth claims')
     const googleUserInfo = await getGoogleUser(id_token, access_token)
     if (!googleUserInfo)
-      throw new AuthError(
-        'Google authorization failed due to invalid credentials'
-      )
+      throw new AuthError('Google authorization failed due to invalid claims')
 
-    const user = await userRepository.findUserByEmail(googleUserInfo.email)
-    if (user) throw new DatabaseError('User already exists')
-
-    const newGoogleUser = userRepository.create({
-      firstName: googleUserInfo.given_name,
-      lastName: googleUserInfo.family_name,
-      userGoogleId: googleUserInfo.id,
-      profilePicture: googleUserInfo.picture,
-      emailVerified: UserEmailVerificationState.UNVERIFIED
+    existingGoogleUser = await userRepository.findOneBy({
+      userGoogleId: googleUserInfo.id
     })
-    const savedNewUser = await userRepository.save(newGoogleUser)
-    const { password, tokens, ...safeUser } = savedNewUser
-    const { userId, userGoogleId, email, phone, role } = savedNewUser
-    const { accessToken, emailVerificationToken } = await newUserSignUpFlow(
-      { userId, userGoogleId, email, role, phone },
-      savedNewUser,
-      '60d',
-      '1d',
-      24 * 60 * 60,
-      24 * 60
+    if (existingGoogleUser) {
+      await AppDataSource.transaction(
+        async (transactionalEntityManager: EntityManager) => {
+          try {
+            const { password, tokens, ...filteredUser } = existingGoogleUser
+            safeUser = filteredUser
+            const { userId, userGoogleId, email, phone, role, emailVerified } =
+              existingGoogleUser
+            const newAccessToken = createJWTToken(
+              { userId, userGoogleId, email, phone, role, emailVerified },
+              '60d'
+            )
+            accessToken = newAccessToken
+            const newDbAccessToken = createNewDbToken(
+              newAccessToken,
+              existingGoogleUser,
+              24 * 60 * 60
+            )
+
+            await transactionalEntityManager.save(Token, newDbAccessToken)
+          } catch (error) {
+            console.trace()
+            throw new Error('Google login transactions failed')
+          }
+        }
+      )
+      return {
+        user: safeUser,
+        accessToken,
+        verificationToken: null
+      }
+    }
+
+    await AppDataSource.transaction(
+      async (transactionalEntityManager: EntityManager) => {
+        try {
+          const newGoogleUser = transactionalEntityManager.create(User, {
+            firstName: googleUserInfo.given_name,
+            lastName: googleUserInfo.family_name,
+            userGoogleId: googleUserInfo.id,
+            profilePicture: googleUserInfo.picture,
+            emailVerified: UserEmailVerificationState.UNVERIFIED
+          })
+          const savedNewUser = await transactionalEntityManager.save(
+            User,
+            newGoogleUser
+          )
+          const { password, tokens, ...filteredUser } = savedNewUser
+          safeUser = filteredUser
+          const { userId, userGoogleId, email, phone, role, emailVerified } =
+            savedNewUser
+          const tokensAndEmailRes = await signUpTokensAndEmailCreation(
+            transactionalEntityManager,
+            { userId, userGoogleId, email, phone, role, emailVerified },
+            savedNewUser,
+            '60d',
+            '1d',
+            24 * 60 * 60,
+            24 * 60
+          )
+          accessToken = tokensAndEmailRes.accessToken
+          verificationToken = tokensAndEmailRes.emailVerificationToken
+
+          sendTokenizedEmail(
+            'Email verification',
+            safeUser.email,
+            tokensAndEmailRes.verificationEmail
+          )
+        } catch (error) {
+          console.trace()
+          throw new Error('Google signup transactions failed')
+        }
+      }
     )
+
     return {
       user: safeUser,
-      accessToken: accessToken,
-      verificationToken: emailVerificationToken
+      accessToken,
+      verificationToken
     }
   } catch (error) {
+    console.trace()
     throw new AuthError('Signup with google failed')
   }
 }
 
 const signUpWithFaceBook = async (code: string) => {
+  let existingFacebookUser: User
+  let safeUser: Partial<User> | undefined
+  let accessToken: string | undefined
+  let verificationToken: string | undefined
+  const client_id = process.env.FB_APPID_SECRET
+  const redirect_uri = process.env.FB_REDIRECT_URI
+  const client_secret = process.env.FB_APP_SECRET
+  if (!client_id || !redirect_uri || !client_secret || !code)
+    throw new AuthError('Missing facebook OAuth claims')
   try {
-    const client_id = process.env.FB_APPID_SECRET
-    const redirect_uri = process.env.FB_REDIRECT_URI
-    const client_secret = process.env.FB_APP_SECRET
-    if (!client_id || !redirect_uri || !client_secret || !code)
-      throw new AuthError('Missing facebook OAuth credentials')
     const tokenResponse = await axios.get(
       `https://graph.facebook.com/v20.0/oauth/access_token?client_id=${client_id}&redirect_uri=${redirect_uri}&client_secret=${client_secret}&code=${code}`
     )
 
     const fbAccessToken = tokenResponse.data.access_token as string
     if (!fbAccessToken || typeof fbAccessToken !== 'string')
-      throw new AuthError('Invalid facebook access token')
+      throw new AuthError('Invalid facebook claim')
     const userResponse = await axios.get('https://graph.facebook.com/me', {
       params: {
         access_token: fbAccessToken,
@@ -374,12 +445,55 @@ const signUpWithFaceBook = async (code: string) => {
 
     const fbUser = userResponse.data as TFaceBookUser
     if (!fbUser) throw new Error('Facebook server error')
+    existingFacebookUser = await userRepository.findOne({
+      where: {
+        userFaceBookId: fbUser.id
+      }
+    })
+    if (existingFacebookUser) {
+      await AppDataSource.transaction(
+        async (transactionalEntityManager: EntityManager) => {
+          try {
+            const { password, tokens, ...filteredUser } = existingFacebookUser
+            safeUser = filteredUser
+            const {
+              userId,
+              userFaceBookId,
+              email,
+              phone,
+              role,
+              emailVerified
+            } = existingFacebookUser
+            const newAccessToken = createJWTToken(
+              { userId, userFaceBookId, email, phone, role, emailVerified },
+              '60d'
+            )
+            accessToken = newAccessToken
+            const newDbAccessToken = createNewDbToken(
+              newAccessToken,
+              existingFacebookUser,
+              24 * 60 * 60
+            )
+
+            await transactionalEntityManager.save(Token, newDbAccessToken)
+          } catch (error) {
+            console.trace()
+            throw new Error('Facebook login transactions failed')
+          }
+        }
+      )
+      return {
+        user: safeUser,
+        accessToken
+      }
+    }
     let first_name: string = 'guest'
-    let last_name: string = null
-    let birthday: string = null
-    let age: number = null
-    let gender: number = null
-    let picture: string = null
+    let last_name: string | null = null
+    let birthday: string | null = null
+    let age: number | null = null
+    let gender: number | null = null
+    let picture: string | null = null
+    let emailToUse: string | null = null
     if (fbUser.first_name) first_name = fbUser.first_name
     if (fbUser.last_name) last_name = fbUser.last_name
     if (fbUser.birthday) {
@@ -393,46 +507,85 @@ const signUpWithFaceBook = async (code: string) => {
     }
     if (fbUser.picture) picture = fbUser.picture.data.url
 
-    const newFbUser = userRepository.create({
-      userFaceBookId: fbUser.id,
-      firstName: first_name,
-      lastName: last_name,
-      dob: birthday,
-      age: age,
-      gender: gender,
-      profilePicture: picture,
-      emailVerified: UserEmailVerificationState.UNVERIFIED
-    })
+    await AppDataSource.transaction(
+      async (transactionalEntityManager: EntityManager) => {
+        try {
+          if (fbUser.email && fbUser.email !== '') emailToUse = fbUser.email
+          const newFaceBookUser = transactionalEntityManager.create(User, {
+            userFaceBookId: fbUser.id,
+            firstName: first_name,
+            lastName: last_name,
+            email: emailToUse,
+            dob: birthday,
+            age: age,
+            gender: gender,
+            profilePicture: picture,
+            emailVerified: UserEmailVerificationState.UNVERIFIED
+          })
 
-    const savedNewUser = await userRepository.save(newFbUser)
-    const { password, tokens, ...safeUser } = savedNewUser
-    const { userId, userFaceBookId, email, phone, role } = savedNewUser
-    const { accessToken, emailVerificationToken } = await newUserSignUpFlow(
-      { userId, userFaceBookId, email, role, phone },
-      savedNewUser,
-      '60d',
-      '1d',
-      24 * 60 * 60,
-      24 * 60
+          const savedNewUser = await transactionalEntityManager.save(
+            User,
+            newFaceBookUser
+          )
+          const { password, tokens, ...filteredUser } = savedNewUser
+          safeUser = filteredUser
+          const { userId, userFaceBookId, email, phone, role, emailVerified } =
+            savedNewUser
+          if (emailToUse) {
+            const tokensAndEmailRes = await signUpTokensAndEmailCreation(
+              transactionalEntityManager,
+              { userId, userFaceBookId, email, role, phone, emailVerified },
+              savedNewUser,
+              '60d',
+              '1d',
+              24 * 60 * 60,
+              24 * 60
+            )
+            accessToken = tokensAndEmailRes.accessToken
+            verificationToken = tokensAndEmailRes.emailVerificationToken
+          }
+          const newAccessToken = createJWTToken(
+            { userId, userFaceBookId, email, phone, role, emailVerified },
+            '60d'
+          )
+          accessToken = newAccessToken
+          const newDbAccessToken = createNewDbToken(
+            newAccessToken,
+            existingFacebookUser,
+            24 * 60 * 60
+          )
+
+          await transactionalEntityManager.save(Token, newDbAccessToken)
+          verificationToken = null
+        } catch (error) {
+          console.trace()
+          throw new Error('Facebook signup transactions failed')
+        }
+      }
     )
 
     return {
       user: safeUser,
-      accessToken: accessToken,
-      verificationToken: emailVerificationToken
+      accessToken,
+      verificationToken
     }
   } catch (error) {
+    console.trace()
     throw new AuthError('Facebook signup failed')
   }
 }
 
 const signUpWithGitHub = async (code: string) => {
+  let existingGitHubUser: User
+  let safeUser: Partial<User> | undefined
+  let accessToken: string | undefined
+  let verificationToken: string | undefined
+  const client_id = process.env.GITHUB_CLIENT_ID_SECRET
+  const redirect_uri = process.env.GITHUB_REDIRECT_URI_SECRET
+  const client_secret = process.env.GITHUB_CLIENT_SECRET
+  if (!client_id || !redirect_uri || !client_secret || !code)
+    throw new Error('missing signup credentials')
   try {
-    const client_id = process.env.GITHUB_CLIENT_ID_SECRET
-    const redirect_uri = process.env.GITHUB_REDIRECT_URI_SECRET
-    const client_secret = process.env.GITHUB_CLIENT_SECRET
-    if (!client_id || !redirect_uri || !client_secret || !code)
-      throw new Error('missing signup credentials')
     const tokenResponse = await axios.post(
       `https://github.com/login/oauth/access_token`,
       {
@@ -456,61 +609,147 @@ const signUpWithGitHub = async (code: string) => {
     })
 
     const gitHubUser = userResponse.data as TGitHubUser
-
     if (!gitHubUser) throw new Error('invalid user')
+    existingGitHubUser = await userRepository.findOne({
+      where: {
+        userGitHubId: String(gitHubUser.id)
+      }
+    })
+
+    if (existingGitHubUser) {
+      await AppDataSource.transaction(
+        async (transactionalEntityManager: EntityManager) => {
+          try {
+            const { password, tokens, ...filteredUser } = existingGitHubUser
+            safeUser = filteredUser
+            const { userId, userGitHubId, email, phone, role, emailVerified } =
+              existingGitHubUser
+            const newAccessToken = createJWTToken(
+              { userId, userGitHubId, email, phone, role, emailVerified },
+              '60d'
+            )
+            accessToken = newAccessToken
+            const newDbAccessToken = createNewDbToken(
+              newAccessToken,
+              existingGitHubUser,
+              24 * 60 * 60
+            )
+
+            await transactionalEntityManager.save(Token, newDbAccessToken)
+          } catch (error) {
+            console.trace()
+            throw new Error('Github login transactions failed')
+          }
+        }
+      )
+      return {
+        user: safeUser,
+        accessToken,
+        verificationToken: null
+      }
+    }
+
     let first_name: string = 'guest'
-    let email: string = null
-    let picture: string = null
+    let email: string | null = null
+    let picture: string | null = null
     if (gitHubUser.name) first_name = gitHubUser.name
     if (gitHubUser.email) email = gitHubUser.email
     if (gitHubUser.avatar_url) picture = gitHubUser.avatar_url
 
-    const newGitHubUser = userRepository.create({
-      userGitHubId: gitHubUser.id,
-      firstName: first_name,
-      email: email,
-      profilePicture: picture,
-      emailVerified: UserEmailVerificationState.UNVERIFIED
-    })
+    AppDataSource.transaction(
+      async (transactionalEntityManager: EntityManager) => {
+        try {
+          const newGitHubUser = transactionalEntityManager.create(User, {
+            userGitHubId: String(gitHubUser.id),
+            firstName: first_name,
+            email: email,
+            profilePicture: picture,
+            emailVerified: UserEmailVerificationState.UNVERIFIED
+          })
 
-    const savedNewUser = await userRepository.save(newGitHubUser)
-    const { password, tokens, ...safeUser } = savedNewUser
-    const { userId, userGitHubId, phone, role } = savedNewUser
-    const { accessToken, emailVerificationToken } = await newUserSignUpFlow(
-      { userId, userGitHubId, email: savedNewUser.email, role, phone },
-      savedNewUser,
-      '60d',
-      '1d',
-      24 * 60 * 60,
-      24 * 60
+          const savedNewUser = await transactionalEntityManager.save(
+            User,
+            newGitHubUser
+          )
+          const { password, tokens, ...filteredUser } = savedNewUser
+          safeUser = filteredUser
+          const { userId, userGitHubId, phone, role } = savedNewUser
+          const tokensAndEmailRes = await signUpTokensAndEmailCreation(
+            transactionalEntityManager,
+            { userId, userGitHubId, email: savedNewUser.email, role, phone },
+            savedNewUser,
+            '60d',
+            '1d',
+            24 * 60 * 60,
+            24 * 60
+          )
+          accessToken = tokensAndEmailRes.accessToken
+          verificationToken = tokensAndEmailRes.emailVerificationToken
+
+          sendTokenizedEmail(
+            'Email verification',
+            safeUser.email,
+            tokensAndEmailRes.verificationEmail
+          )
+        } catch (error) {
+          console.trace()
+          throw new Error('Github signup transactions failed')
+        }
+      }
     )
 
     return {
       user: safeUser,
-      accessToken: accessToken,
-      verificationToken: emailVerificationToken
+      accessToken,
+      verificationToken
     }
   } catch (error) {
+    console.trace()
     throw new AuthError('Github signup failed')
   }
 }
 
 const forgotPassword = async (formEmail: string) => {
-  const dbUser = await userRepository.findOne({
-    where: {
-      email: formEmail
-    }
-  })
-  if (!dbUser) throw new DatabaseError("User doesn't exist")
-  const { userId, role, email } = dbUser
-  const forgotPasswordToken = createJWTToken({ userId, role, email }, '5m')
-  await tokenRepository.saveNewDbToken(forgotPasswordToken, dbUser, 5)
-  const tokenizedResetEmail = await createTokenizedEmailLink(
-    email,
-    forgotPasswordToken,
-    'verify/email'
-  )
-  sendTokenizedEmail('Reset email password', email, tokenizedResetEmail)
+  try {
+    let forgotPasswordToken: string | null = null
+    const dbUser = await userRepository.findOne({
+      where: {
+        email: formEmail
+      }
+    })
+    if (!dbUser) throw new DatabaseError("User doesn't exist")
+    const { userId, role, email } = dbUser
+
+    AppDataSource.transaction(
+      async (transactionalEntityManager: EntityManager) => {
+        try {
+          forgotPasswordToken = createJWTToken({ userId, role, email }, '5m')
+          const newDbForgotPasswordToken = transactionalEntityManager.create(
+            Token,
+            {
+              expiresAt: addMinutesToDate(new Date(), 5).toISOString(),
+              user: dbUser,
+              tokenUseTimes: 1,
+              token: forgotPasswordToken
+            }
+          )
+          await transactionalEntityManager.save(Token, newDbForgotPasswordToken)
+        } catch (error) {
+          console.trace()
+          throw new Error('"Forgot password" transactions failed')
+        }
+      }
+    )
+
+    const tokenizedResetEmail = await createTokenizedEmailLink(
+      forgotPasswordToken,
+      'reset-password'
+    )
+    sendTokenizedEmail('Reset password', email, tokenizedResetEmail)
+  } catch (error) {
+    console.trace()
+    throw new AuthError('"Forgot password" failed')
+  }
 }
 
 type forgotPasswordTokenVerificationResults = {
@@ -534,26 +773,37 @@ const changePassword = async (
     const dbUser = await userRepository.findOne({
       where: {
         email
+      },
+      relations: {
+        tokens: true
       }
     })
     if (!dbUser) throw new DatabaseError("User doesn't exist")
     const dbForgetPasswordToken = dbUser.tokens.filter(
-      (token) => token.token !== forgotPasswordToken
+      (token) => token.token === forgotPasswordToken
     )
     if (!dbForgetPasswordToken && dbForgetPasswordToken.length !== 0)
-      throw new AuthError('Unauthorized user')
-    await userRepository.update(
-      {
-        password: formPassword
-      },
-      dbUser
+      throw new AuthError('Missing "Forget password" claims')
+    await AppDataSource.transaction(
+      async (transactionalEntityManager: EntityManager) => {
+        try {
+          await transactionalEntityManager.update(
+            User,
+            {
+              password: formPassword
+            },
+            dbUser
+          )
+          await transactionalEntityManager.delete(Token, {
+            token: forgotPasswordToken
+          })
+        } catch (error) {
+          throw new Error('Reset password transactions failed')
+        }
+      }
     )
-
-    await tokenRepository.delete({
-      token: forgotPasswordToken
-    })
   } catch (error) {
-    throw new Error('Change password failed')
+    throw new Error('Reset password failed')
   }
 }
 
