@@ -58,17 +58,8 @@ const signUpController: TSignUpController = async (
   res: Response
 ) => {
   try {
-    const {
-      firstName,
-      lastName,
-      email,
-      phone,
-      password,
-      gender,
-      dob,
-      job,
-      teamNameRelatingUserJob
-    } = req.body
+    const { firstName, lastName, email, phone, password, gender, dob, job } =
+      req.body
 
     const { user, accessToken, verificationToken } = await signUp(
       firstName,
@@ -78,8 +69,7 @@ const signUpController: TSignUpController = async (
       password,
       gender,
       dob,
-      job,
-      teamNameRelatingUserJob
+      job
     )
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
@@ -142,12 +132,15 @@ const signUpWithGoogleController: TSignUpWithGoogleController = async (
       signed: true,
       maxAge: 60 * 24 * 60 * 60 * 1000
     })
-    res.cookie('verificationToken', verificationToken, {
-      httpOnly: true,
-      sameSite: true,
-      signed: true,
-      maxAge: 24 * 60 * 60 * 1000
-    })
+
+    if (verificationToken) {
+      res.cookie('verificationToken', verificationToken, {
+        httpOnly: true,
+        sameSite: true,
+        signed: true,
+        maxAge: 24 * 60 * 60 * 1000
+      })
+    }
 
     res
       .status(200)
@@ -176,12 +169,15 @@ const signUpWithFaceBookController: TSignUpWithFaceBook = async (req, res) => {
       signed: true,
       maxAge: 5 * 60 * 1000
     })
-    res.cookie('verificationToken', verificationToken, {
-      httpOnly: true,
-      sameSite: true,
-      signed: true,
-      maxAge: 24 * 60 * 60 * 1000
-    })
+    if (verificationToken) {
+      res.cookie('verificationToken', verificationToken, {
+        httpOnly: true,
+        sameSite: true,
+        signed: true,
+        maxAge: 24 * 60 * 60 * 1000
+      })
+    }
+
     res.status(200).json({
       user,
       message: 'Signed up with facebook successfully.'
@@ -210,15 +206,18 @@ const signUpWithGitHubController = async (req: Request, res: Response) => {
       signed: true,
       maxAge: 5 * 60 * 1000
     })
-    res.cookie('verificationToken', verificationToken, {
-      httpOnly: true,
-      sameSite: true,
-      signed: true,
-      maxAge: 24 * 60 * 60 * 1000
-    })
+    if (verificationToken) {
+      res.cookie('verificationToken', verificationToken, {
+        httpOnly: true,
+        sameSite: true,
+        signed: true,
+        maxAge: 24 * 60 * 60 * 1000
+      })
+    }
+
     res.status(200).json({
-      user,
-      message: 'Signed up with facebook successfully.'
+      user: user,
+      message: 'Signed up with github successfully.'
     })
   } catch (error) {
     res.status(400).json({ message: 'Github signup failed' })
