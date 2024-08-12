@@ -11,7 +11,6 @@ import { TeamMember } from './TeamMember'
 import { Coach } from './Coach'
 import { IsDeleted } from '../enums/globalEnums'
 import {
-  UserGenders,
   UserJobs,
   UserRoles,
   UserEmailVerificationState
@@ -100,8 +99,8 @@ export class User {
   email: string
 
   @Column({
-    type: 'varchar',
-    length: 40,
+    type: 'nvarchar',
+    length: 'MAX',
     nullable: true
   })
   password: string

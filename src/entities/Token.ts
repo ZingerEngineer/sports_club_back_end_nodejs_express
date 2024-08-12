@@ -11,7 +11,9 @@ export class Token {
   @PrimaryGeneratedColumn()
   tokenId: number
 
-  @ManyToOne(() => User, (user) => user.tokens)
+  @ManyToOne(() => User, (user) => user.tokens, {
+    orphanedRowAction: 'delete'
+  })
   @JoinColumn({
     name: 'userId'
   })
