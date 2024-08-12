@@ -18,6 +18,10 @@ const sports: Partial<Sport>[] = [
 export const sportSeeder = async (sportSeed: Partial<Sport>[] = sports) => {
   try {
     await AppDataSource.initialize()
+
+    await sportRepository.delete({})
+    console.log('Deleted all sports.')
+
     console.log('Sport seeder connected to db.')
     for (const sport of sportSeed) {
       sportRepository.create({

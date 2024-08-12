@@ -24,6 +24,9 @@ export const teamSeeder = async (teamSeed = teams) => {
     await AppDataSource.initialize()
     console.log('Team seeder connected to db.')
 
+    await teamRepository.delete({})
+    console.log('Deleted all teams.')
+
     for (const team of teamSeed) {
       const dbSport = await sportRepository.findOneBy({
         name: team.sportName
