@@ -9,6 +9,13 @@ import {
   changePassword,
   forgotPassword
 } from '../actions/auth'
+
+import {
+  getUserPorfile,
+  patchUserNewChange,
+  patchUserNewEmail,
+  patchUserNewPassword
+} from '../actions/user'
 import { verifyEmail } from '../actions/auth'
 
 type TLoginController = (req: Request, res: Response) => Promise<void>
@@ -88,8 +95,7 @@ const signUpController: TSignUpController = async (
       message: 'User registered successfully.'
     })
   } catch (error) {
-    console.log(error)
-    console.error('Signup failed')
+    console.trace(error)
     res.status(400).json({ message: 'Signup failed.' })
   }
 }
@@ -245,6 +251,110 @@ const resetPasswordController = async (req: Request, res: Response) => {
     res.status(400).json({ message: 'Failed to reset password.' })
   }
 }
+
+const getUserPorfilecontroller = async (req: Request, res: Response) => {
+  try {
+    const userId = req.params.id
+    const user = await getUserPorfile(userId)
+    if (!user) throw new Error('User not found')
+    res.status(200).json({ user })
+  } catch (error) {
+    res.status(400).json({ message: 'Failed to get user profile.' })
+  }
+}
+
+const changeUserFirstNameController = async (req: Request, res: Response) => {
+  try {
+    const userId = req.params.id
+    const newFirstName = req.body.newFirstName
+    const updateResults = await patchUserNewChange(
+      'firstName',
+      newFirstName,
+      userId
+    )
+    if (!updateResults) throw new Error('Failed to update user first name')
+    res.status(200).json({ message: 'User first name updated successfully.' })
+  } catch (error) {
+    console.log(error)
+    res.status(400).json({ message: 'Failed to update user first name.' })
+  }
+}
+const changeUserLastNameController = async (req: Request, res: Response) => {
+  try {
+    const userId = req.params.id
+    const newLastName = req.body.lastName
+    const updateResults = await patchUserNewChange(
+      'lastName',
+      newLastName,
+      userId
+    )
+    if (!updateResults) throw new Error('Failed to update user last name')
+    res.status(200).json({ message: 'User last name updated successfully.' })
+  } catch (error) {
+    res.status(400).json({ message: 'Failed to update user last name.' })
+  }
+}
+const changeUserPictureController = async (req: Request, res: Response) => {
+  try {
+    const userId = req.params.id
+    const newUserProfilePicture = req.body.profilePicture
+    const updateResults = await patchUserNewChange(
+      'profilePicture',
+      newUserProfilePicture,
+      userId
+    )
+    if (!updateResults) throw new Error('Failed to update user profile picture')
+    res
+      .status(200)
+      .json({ message: 'User profile picture updated successfully.' })
+  } catch (error) {
+    res.status(400).json({ message: 'Failed to update user profile picture.' })
+  }
+}
+const changeUserGenderController = async (req: Request, res: Response) => {
+  try {
+    const userId = req.params.id
+    const newUserGender = req.body.gender
+    const updateResults = await patchUserNewChange(
+      'gender',
+      newUserGender,
+      userId
+    )
+    if (!updateResults) throw new Error('Failed to update user gender')
+    res.status(200).json({ message: 'User gender updated successfully.' })
+  } catch (error) {
+    res.status(400).json({ message: 'Failed to update user gender.' })
+  }
+}
+const changeUserEmailController = async (req: Request, res: Response) => {
+  try {
+    const userId = req.params.id
+    const newUserEmail = req.body.email
+    if (!newUserEmail || typeof newUserEmail !== 'string')
+      throw new Error('Invalid email')
+    const updateResults = await patchUserNewEmail(newUserEmail, userId)
+    if (!updateResults) throw new Error('Failed to update user gender')
+    res
+      .status(200)
+      .json({ message: 'User email updated awaiting verifcation.' })
+  } catch (error) {
+    res.status(400).json({ message: 'Failed to update user email.' })
+  }
+}
+const changeUserPasswordController = async (req: Request, res: Response) => {
+  try {
+    const userId = req.params.id
+    const newUserPassword = req.body.password
+    if (!newUserPassword || typeof newUserPassword !== 'string')
+      throw new Error('Invalid password')
+    const updateResults = await patchUserNewPassword(newUserPassword, userId)
+    if (!updateResults) throw new Error('Failed to update user gender')
+    res.status(200).json({ message: 'User password updated successfully.' })
+  } catch (error) {
+    res.status(400).json({ message: 'Failed to update user password.' })
+  }
+}
+
 export {
   loginController,
   signUpController,
@@ -254,5 +364,12 @@ export {
   signUpWithGoogleController,
   signUpWithGitHubController,
   forgotPasswordController,
-  resetPasswordController
+  resetPasswordController,
+  getUserPorfilecontroller,
+  changeUserEmailController,
+  changeUserFirstNameController,
+  changeUserLastNameController,
+  changeUserPasswordController,
+  changeUserPictureController,
+  changeUserGenderController
 }
