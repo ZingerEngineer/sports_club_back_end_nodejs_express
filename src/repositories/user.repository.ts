@@ -126,8 +126,7 @@ export const userRepository = AppDataSource.getRepository(User).extend({
         }
       })
     } catch (error) {
-      console.log(error)
-      return null
+      console.trace(error)
     }
   },
   async findUserByEmail(email: string) {
@@ -141,8 +140,7 @@ export const userRepository = AppDataSource.getRepository(User).extend({
         }
       })
     } catch (error) {
-      console.log(error)
-      return null
+      console.trace(error)
     }
   },
 
@@ -157,8 +155,7 @@ export const userRepository = AppDataSource.getRepository(User).extend({
         }
       })
     } catch (error) {
-      console.log(error)
-      return null
+      console.trace(error)
     }
   },
 
@@ -173,8 +170,7 @@ export const userRepository = AppDataSource.getRepository(User).extend({
         }
       })
     } catch (error) {
-      console.log(error)
-      return null
+      console.trace(error)
     }
   },
   async findUsersByFullName(firstName: string, lastName: string) {
@@ -191,8 +187,7 @@ export const userRepository = AppDataSource.getRepository(User).extend({
         }
       })
     } catch (error) {
-      console.log(error)
-      return null
+      console.trace(error)
     }
   },
   async softDeleteUserById(id: number) {
@@ -200,7 +195,7 @@ export const userRepository = AppDataSource.getRepository(User).extend({
       const user = await userRepository.find({
         where: { userId: id }
       })
-      if (!user) return null
+      if (!user) throw new Error("User doesn't exist")
       return await userRepository
         .createQueryBuilder('user')
         .update(User)
@@ -211,8 +206,7 @@ export const userRepository = AppDataSource.getRepository(User).extend({
         .where('user.userId = :checkedId', { id })
         .execute()
     } catch (error) {
-      console.log(error)
-      return null
+      console.trace(error)
     }
   },
 
@@ -221,7 +215,7 @@ export const userRepository = AppDataSource.getRepository(User).extend({
       const user = await userRepository.find({
         where: { userId: id }
       })
-      if (!user) return null
+      if (!user) throw new Error("User doesn't exist")
       return await userRepository
         .createQueryBuilder('user')
         .delete()
@@ -229,8 +223,7 @@ export const userRepository = AppDataSource.getRepository(User).extend({
         .where('user.userId = :checkedId', { checkedId: id })
         .execute()
     } catch (error) {
-      console.log(error)
-      return null
+      console.trace(error)
     }
   },
   async makeUserEmailVertified(userId: string, userEmail: string) {

@@ -25,7 +25,7 @@ export const authorization = async (inputToken: string) => {
 export const authorizationMiddleWare =
   (tokenName: string) => (req: Request, res: Response, next: NextFunction) => {
     try {
-      authorization(req.cookies.tokenName)
+      authorization(req.signedCookies[tokenName])
       next()
     } catch (error) {
       res.status(403).json({ message: 'unauthorized access' })

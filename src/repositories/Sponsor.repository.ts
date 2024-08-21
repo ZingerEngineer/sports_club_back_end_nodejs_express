@@ -12,8 +12,7 @@ export const sponsorRepository = AppDataSource.getRepository(Sponsor).extend({
         }
       })
     } catch (error) {
-      console.log(error)
-      return null
+      console.trace(error)
     }
   },
 
@@ -27,8 +26,7 @@ export const sponsorRepository = AppDataSource.getRepository(Sponsor).extend({
         }
       })
     } catch (error) {
-      console.log(error)
-      return null
+      console.trace(error)
     }
   },
   async findSponsorByName(name: string) {
@@ -41,8 +39,7 @@ export const sponsorRepository = AppDataSource.getRepository(Sponsor).extend({
         }
       })
     } catch (error) {
-      console.log(error)
-      return null
+      console.trace(error)
     }
   },
   async softDeleteSponsorById(id: number) {
@@ -61,7 +58,7 @@ export const sponsorRepository = AppDataSource.getRepository(Sponsor).extend({
         .where('sponsor.sponsorId = :sponsId', { sponsId: id })
         .execute()
     } catch (error) {
-      console.log(error)
+      console.trace(error)
       throw new Error('session soft deletion failed')
     }
   },
@@ -70,7 +67,7 @@ export const sponsorRepository = AppDataSource.getRepository(Sponsor).extend({
       const sponsor = await sponsorRepository.findOne({
         where: { name: name }
       })
-      if (!sponsor) return null
+      if (!sponsor) throw new Error("Sponsor doesn't exist")
       return await sponsorRepository
         .createQueryBuilder('sponsor')
         .update(Sponsor)
@@ -81,7 +78,7 @@ export const sponsorRepository = AppDataSource.getRepository(Sponsor).extend({
         .where('sponsor.name = :name', { name: name })
         .execute()
     } catch (error) {
-      console.log(error)
+      console.trace(error)
       throw new Error('session soft deletion failed')
     }
   },
@@ -91,7 +88,7 @@ export const sponsorRepository = AppDataSource.getRepository(Sponsor).extend({
       const sponsor = await sponsorRepository.findOne({
         where: { sponsorId: id }
       })
-      if (!sponsor) return null
+      if (!sponsor) throw new Error("Sponsor doesn't exist")
       return await sponsorRepository
         .createQueryBuilder('sponsor')
         .delete()
@@ -99,7 +96,7 @@ export const sponsorRepository = AppDataSource.getRepository(Sponsor).extend({
         .where('sponsor.sponsorId = :sponsId', { sponsId: id })
         .execute()
     } catch (error) {
-      console.log(error)
+      console.trace(error)
       throw new Error('session hard deletion failed')
     }
   },
@@ -109,7 +106,7 @@ export const sponsorRepository = AppDataSource.getRepository(Sponsor).extend({
       const sponsor = await sponsorRepository.findOne({
         where: { name: name }
       })
-      if (!sponsor) return null
+      if (!sponsor) throw new Error("Sponsor doesn't exist")
       return await sponsorRepository
         .createQueryBuilder('sponsor')
         .delete()
@@ -117,7 +114,7 @@ export const sponsorRepository = AppDataSource.getRepository(Sponsor).extend({
         .where('sponsor.name = :name', { name: name })
         .execute()
     } catch (error) {
-      console.log(error)
+      console.trace(error)
       throw new Error('session hard deletion failed')
     }
   },

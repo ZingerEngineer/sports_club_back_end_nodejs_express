@@ -44,7 +44,7 @@ export const matchRepository = AppDataSource.getRepository(Match).extend({
         .where('tournament.tournamentId = :matchId', { matchId: id })
         .getOne()
     } catch (error) {
-      console.log(error)
+      console.trace(error)
     }
   },
 
@@ -62,7 +62,7 @@ export const matchRepository = AppDataSource.getRepository(Match).extend({
         .where('match.matchId = :matchId', { matchId: id })
         .execute()
     } catch (error) {
-      console.log(error)
+      console.trace(error)
     }
   },
 
@@ -77,7 +77,7 @@ export const matchRepository = AppDataSource.getRepository(Match).extend({
         .where('match.matchId = :matchId', { matchId: id })
         .execute()
     } catch (error) {
-      console.log(error)
+      console.trace(error)
     }
   },
 

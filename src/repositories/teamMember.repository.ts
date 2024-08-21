@@ -27,8 +27,7 @@ export const teamMemberRepository = AppDataSource.getRepository(
         ])
         .getMany()
     } catch (error) {
-      console.log(error)
-      return null
+      console.trace(error)
     }
   },
 
@@ -56,8 +55,7 @@ export const teamMemberRepository = AppDataSource.getRepository(
         })
         .getOne()
     } catch (error) {
-      console.log(error)
-      return null
+      console.trace(error)
     }
   }
 })

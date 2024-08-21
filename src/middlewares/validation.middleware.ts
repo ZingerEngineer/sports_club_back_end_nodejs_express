@@ -1,14 +1,16 @@
 import { Request, Response, NextFunction } from 'express'
 import { ZodSchema } from 'zod'
+import { omit, isEqual } from 'lodash'
 
 const validate = async (schema: ZodSchema, data: any) => {
   try {
     const checkRes = await schema.safeParseAsync(data)
     if (checkRes.error) {
-      throw new Error('Validation Error')
+      throw new Error("Data doesn't match the schema")
     }
   } catch (error) {
-    throw new Error('Validation Error')
+    console.trace(error)
+    throw new Error('Schema validation error')
   }
 }
 

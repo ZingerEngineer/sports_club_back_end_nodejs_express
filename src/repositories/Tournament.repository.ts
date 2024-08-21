@@ -23,8 +23,7 @@ export const tournamentRepository = AppDataSource.getRepository(
         ])
         .getMany()
     } catch (error) {
-      console.log(error)
-      return null
+      console.trace(error)
     }
   },
 
@@ -45,8 +44,7 @@ export const tournamentRepository = AppDataSource.getRepository(
         .where('tournament.tournamentId = :tournId', { tournId: id })
         .getOne()
     } catch (error) {
-      console.log(error)
-      return null
+      console.trace(error)
     }
   },
   async findTournamentByName(name: string) {
@@ -66,14 +64,13 @@ export const tournamentRepository = AppDataSource.getRepository(
         .where('tournament.tournamentName = :name', { name })
         .getOne()
     } catch (error) {
-      console.log(error)
-      return null
+      console.trace(error)
     }
   },
   async softDeleteTournamentById(id: number) {
     try {
       const tournament = await tournamentRepository.findTournamentById(id)
-      if (!tournament) return null
+      if (!tournament) throw new Error("Tournament doesn't exist")
       return await tournamentRepository
         .createQueryBuilder('tournament')
         .update(Tournament)
@@ -84,14 +81,13 @@ export const tournamentRepository = AppDataSource.getRepository(
         .where('tournament.tournamentId = :tournId', { tournId: id })
         .execute()
     } catch (error) {
-      console.log(error)
-      return null
+      console.trace(error)
     }
   },
   async softDeleteTournamentByName(name: string) {
     try {
       const tournament = await tournamentRepository.findTournamentByName(name)
-      if (!tournament) return null
+      if (!tournament) throw new Error("Tournament doesn't exist")
       return await tournamentRepository
         .createQueryBuilder('tournament')
         .update(Tournament)
@@ -102,31 +98,31 @@ export const tournamentRepository = AppDataSource.getRepository(
         .where('tournament.tournamentName = :name', { name })
         .execute()
     } catch (error) {
-      console.log(error)
-      return null
+      console.trace(error)
     }
   },
 
   async hardDeleteTournamentById(id: number) {
     try {
       const tournament = await tournamentRepository.findTournamentById(id)
-      if (!tournament) return null
+      if (!tournament) throw new Error("Tournament doesn't exist")
       return await tournamentRepository
         .createQueryBuilder('tournament')
         .delete()
         .from(Tournament)
-        .where('tournament.tournamentId = :tournamentId', { tournamentId: id })
+        .where('tournament.tournamentId = :tournamentId', {
+          tournamentId: id
+        })
         .execute()
     } catch (error) {
-      console.log(error)
-      return null
+      console.trace(error)
     }
   },
 
   async hardDeleteTournamentByName(name: string) {
     try {
       const tournament = await tournamentRepository.findTournamentByName(name)
-      if (!tournament) return null
+      if (!tournament) throw new Error("Tournament doesn't exist")
       return await tournamentRepository
         .createQueryBuilder('tournament')
         .delete()
@@ -134,8 +130,7 @@ export const tournamentRepository = AppDataSource.getRepository(
         .where('tournament.tournamentName = :name', { name: name })
         .execute()
     } catch (error) {
-      console.log(error)
-      return null
+      console.trace(error)
     }
   },
 
