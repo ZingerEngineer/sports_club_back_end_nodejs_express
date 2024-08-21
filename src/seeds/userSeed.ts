@@ -1,3 +1,9 @@
+import {
+  createJWTToken,
+  createNewDbToken,
+  createTokenizedEmailLink,
+  sendTokenizedEmail
+} from '../actions/auth'
 import { tokenRepository } from '../repositories/token.repository'
 import { userRepository } from '../repositories/user.repository'
 import { AppDataSource } from '../services/data-source'
@@ -25,13 +31,35 @@ export const userSeeder = async (userSeed = users) => {
 
     for (const user of userSeed) {
       const hashedPassword = await bcrypt.hash(user.formPassword, 10)
-      console.log(hashedPassword)
       const newUser = userRepository.create({
         email: user.email,
         phone: user.phone,
         password: hashedPassword
       })
       await userRepository.save(newUser)
+      const newAccessToken = createJWTToken(
+        {
+          userId: newUser.userId,
+          role: newUser.role,
+          email: newUser.email,
+          phone: newUser.phone
+        },
+        '60d'
+      )
+      const newDbAccessToken = createNewDbToken(
+        newAccessToken,
+        newUser,
+        24 * 60 * 60
+      )
+      const newEmailVerificationToken = createJWTToken(
+        {
+          userId: newUser.userId,
+          role: newUser.role,
+          email: newUser.email,
+          phone: newUser.phone
+        },
+        '1d'
+      )
     }
     console.log(`User seeding is done.`)
   } catch (error) {
