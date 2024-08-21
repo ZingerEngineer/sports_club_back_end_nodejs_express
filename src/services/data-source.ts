@@ -2,9 +2,7 @@ import 'reflect-metadata'
 import { DataSource } from 'typeorm'
 import dotenv from 'dotenv'
 
-dotenv.config({
-  path: 'src/.env'
-})
+dotenv.config()
 const database = process.env.DB_NAME_SECRET
 const username = process.env.DB_USER_NAME_SECRET
 const password = process.env.DB_USER_PASS_SECRET
