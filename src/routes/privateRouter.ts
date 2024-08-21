@@ -8,7 +8,7 @@ const privateRouter = express.Router()
 
 privateRouter.get('/test-private', authorizationMiddleWare, test)
 
-privateRouter.use('/user', userRouter)
+privateRouter.use('/user', authorizationMiddleWare('accessToken'), userRouter)
 privateRouter.use('/admin', adminRouter)
 privateRouter.use('/superAdmin', superAdminRouter)
 
