@@ -57,7 +57,7 @@ type emailVerificationTokenVerificationResults = {
   iat: number
 }
 
-const createNewDbToken = (
+export const createNewDbToken = (
   jwtToken: string,
   user: User,
   minutesToAdd: number
@@ -73,7 +73,10 @@ const createNewDbToken = (
   newDbToken.createdAt = new Date().toISOString()
   return newDbToken
 }
-const createTokenizedEmailLink = async (token: string, route: string) => {
+export const createTokenizedEmailLink = async (
+  token: string,
+  route: string
+) => {
   try {
     const tokenizedEmail = `http://localhost:1800/v1/${route}?t=${token}`
     const finalEmailForm = `"The following email is a one time email and available for 5 minutes only: ${tokenizedEmail}`
@@ -83,7 +86,7 @@ const createTokenizedEmailLink = async (token: string, route: string) => {
   }
 }
 
-const sendTokenizedEmail = async (
+export const sendTokenizedEmail = async (
   emailTitle: string,
   email: string,
   emailBody: string
@@ -92,12 +95,12 @@ const sendTokenizedEmail = async (
     if (!emailBody) throw new Error('Missing email body')
     await sendEmail(email, emailTitle, emailBody)
   } catch (error) {
-    console.log(error)
+    console.trace(error)
     throw new Error('Sending email failed')
   }
 }
 
-const signUpTokensAndEmailCreation = async (
+export const signUpTokensAndEmailCreation = async (
   transactionalEntityManager: EntityManager,
   userDataToBeTokenized: Partial<User>,
   newDbUser: User,
@@ -162,7 +165,10 @@ const verifyEmail = async (userVerificationToken: string) => {
   }
 }
 
-const createJWTToken = (userData: Partial<User>, JWTExpiresIn: string) => {
+export const createJWTToken = (
+  userData: Partial<User>,
+  JWTExpiresIn: string
+) => {
   const JWTToken = sign(userData, tokenSecret, {
     expiresIn: JWTExpiresIn
   })
